@@ -11,20 +11,21 @@ export class RouteFinder {
 
     this.butuanPlaces = [
       { name: 'Butuan City Hall', lat: 8.953775339827885, lng: 125.52922189368539 },
-      { name: 'Robinsons Place Butuan', lat: 8.9587, lng: 125.5439 },
-      { name: 'Gaisano Grand Mall Butuan', lat: 8.9534, lng: 125.5387 },
-      { name: 'Butuan Airport', lat: 8.9514, lng: 125.4789 },
-      { name: 'Butuan Port', lat: 8.9445, lng: 125.5523 },
-      { name: 'Butuan National Museum', lat: 8.9489, lng: 125.5425 },
+      { name: 'Robinsons Place Butuan', lat: 8.943025240692158, lng: 125.52002742041245 },
+      { name: 'Gaisano Grand Mall Butuan', lat: 8.945767988899405, lng: 125.5253821714216 },
+      { name: 'Butuan Airport', lat: 8.946059262592287, lng: 125.48259422894714 },
+      { name: 'Butuan Port', lat: 8.95329704584716, lng: 125.54267120725197 },
+      { name: 'Butuan National Museum', lat: 8.953421955407247, lng: 125.52717817838723 },
       { name: 'Guingona Park', lat: 8.947790666935324, lng: 125.5433043032038 },
-      { name: 'Butuan Central Elementary School', lat: 8.9478, lng: 125.5398 },
-      { name: 'Father Saturnino Urios University', lat: 8.9523, lng: 125.5445 },
-      { name: 'Butuan Medical City', lat: 8.9456, lng: 125.5389 },
-      { name: 'SM City Butuan', lat: 8.9612, lng: 125.5456 },
-      { name: 'Liberty Shrine', lat: 8.9567, lng: 125.5423 },
-      { name: 'Banza Church', lat: 8.9534, lng: 125.5367 },
-      { name: 'Butuan Bridge', lat: 8.9489, lng: 125.5478 },
-      { name: 'RTR Plaza', lat: 8.9487, lng: 125.5421 },
+      { name: 'Butuan Central Elementary School', lat: 8.94628926250755, lng: 125.54296913601452 },
+      {
+        name: 'Father Saturnino Urios University',
+        lat: 8.947741228746285,
+        lng: 125.54197135437067,
+      },
+      { name: 'Butuan Medical City', lat: 8.962105143955448, lng: 125.58608913601485 },
+      { name: 'SM City Butuan', lat: 8.948119865042665, lng: 125.53313827314534 },
+      { name: 'Banza Church', lat: 8.972692275958764, lng: 125.53839051705167 },
     ]
   }
 

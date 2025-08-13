@@ -553,6 +553,4 @@ watch(
 )
 </script>
 
-<style scoped>
-/* Any component-specific styles can be added here */
-</style>
+<style scoped></style>

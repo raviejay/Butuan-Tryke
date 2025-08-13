@@ -15,7 +15,7 @@
         <p class="text-xs text-gray-500">Multi-Zone Routes</p>
       </div>
 
-      <!-- Loading Status -->
+      <!-- Loading Status sa mga routes debugging purposes -->
       <div class="bg-white rounded-lg shadow-lg p-3">
         <label class="block text-xs font-medium text-gray-700 mb-1">Zone Status</label>
         <div v-if="isLoading" class="flex items-center text-xs text-orange-600">
