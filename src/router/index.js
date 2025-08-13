@@ -9,6 +9,10 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
     },
+    {
+      path: '/auth/callback',
+      redirect: '/', // redirect to home
+    },
   ],
 })
 

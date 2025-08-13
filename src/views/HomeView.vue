@@ -97,8 +97,6 @@ const handleMapClick = async ({ lat, lng, activeField: field }) => {
       // Keep the coordinate format if reverse geocoding fails
       console.log('Reverse geocoding failed, keeping coordinate format')
     })
-
-  // Removed auto-triggering - now only triggers when "Find Ride" button is clicked
 }
 
 // Handle input changes for search
@@ -123,8 +121,6 @@ const handlePlaceSelected = async ({ place, activeField: field }) => {
   }
 
   searchSuggestions.value = []
-
-  // Removed auto-triggering - now only triggers when "Find Ride" button is clicked
 }
 
 // Main function to find tricycle route

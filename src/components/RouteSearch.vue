@@ -43,23 +43,44 @@
             </div>
 
             <div v-for="(leg, legIndex) in suggestion.legs" :key="legIndex" class="ml-4 text-sm">
-              <div class="flex items-center">
-                <span
-                  class="w-2 h-2 rounded-full mr-2"
-                  :style="{ backgroundColor: leg.color }"
-                ></span>
-                <span class="font-medium">{{ leg.zone }} Zone</span>
-                <span class="ml-2 text-gray-600">₱{{ leg.fare }}</span>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span
+                    class="w-2 h-2 rounded-full mr-2"
+                    :style="{ backgroundColor: leg.color }"
+                  ></span>
+                  <span class="font-medium">{{ leg.zone }} Zone</span>
+                </div>
+                <div class="text-right">
+                  <div v-if="activeFareType === 'regular'" class="text-green-600 font-medium">
+                    ₱{{ leg.fare }}
+                  </div>
+                  <div v-else class="text-blue-600 font-medium">₱{{ leg.discountedFare }}</div>
+                  <div class="text-xs text-gray-500">
+                    {{ activeFareType === 'regular' ? 'Regular fare' : 'PWD/Student/Senior' }}
+                  </div>
+                </div>
               </div>
               <div class="text-xs text-gray-500 ml-4">{{ leg.description }}</div>
             </div>
 
             <div class="border-t pt-2 text-sm">
               <div class="flex justify-between items-center">
-                <span class="font-semibold text-green-600">Total: ₱{{ suggestion.totalFare }}</span>
                 <span class="text-xs text-gray-500"
                   >{{ suggestion.totalWalkDistance }}m total walk</span
                 >
+                <div class="text-right">
+                  <div
+                    class="font-semibold"
+                    :class="activeFareType === 'regular' ? 'text-green-600' : 'text-blue-600'"
+                  >
+                    Total: ₱{{
+                      activeFareType === 'regular'
+                        ? suggestion.totalFare
+                        : suggestion.totalDiscountedFare
+                    }}
+                  </div>
+                </div>
               </div>
               <div v-if="suggestion.transferPoints" class="text-xs text-blue-600 mt-1">
                 Transfer at: {{ suggestion.transferPoints.join(', ') }}
@@ -73,18 +94,92 @@
             <div class="text-sm text-gray-600">{{ suggestion.description }}</div>
             <div
               v-if="suggestion.actualDistance && suggestion.actualDuration"
-              class="text-xs text-blue-600 mt-1"
+              class="text-xs text-blue-600 mt-1 flex items-center"
             >
-              📍 Route: {{ suggestion.actualDistance }}km • {{ suggestion.actualDuration }} min
-            </div>
-            <div class="text-sm text-gray-600 mt-1">
-              <span
-                class="inline-block px-2 py-1 rounded text-xs"
-                :style="{ backgroundColor: suggestion.color + '20', color: suggestion.color }"
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-blue-500 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {{ suggestion.zone }} Zone
-              </span>
-              <span class="ml-2 text-green-600 font-medium">₱{{ suggestion.fare }}</span>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Route: {{ suggestion.actualDistance }}km • {{ suggestion.actualDuration }} min
+            </div>
+
+            <!-- Fare Type Toggle -->
+            <div class="flex border-b border-gray-300 mt-2 mb-4">
+              <button
+                @click.stop="activeFareType = 'regular'"
+                class="flex-1 py-2 text-sm font-medium text-center relative transition-colors duration-200"
+                :class="
+                  activeFareType === 'regular'
+                    ? 'text-green-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                "
+              >
+                Regular
+                <span
+                  v-if="activeFareType === 'regular'"
+                  class="absolute bottom-0 left-0 w-full h-0.5 bg-green-600 rounded transition-all duration-200"
+                ></span>
+              </button>
+
+              <button
+                @click.stop="activeFareType = 'discounted'"
+                class="flex-1 py-2 text-sm font-medium text-center relative transition-colors duration-200"
+                :class="
+                  activeFareType === 'discounted'
+                    ? 'text-green-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                "
+              >
+                Discounted
+                <span
+                  v-if="activeFareType === 'discounted'"
+                  class="absolute bottom-0 left-0 w-full h-0.5 bg-green-600 rounded transition-all duration-200"
+                ></span>
+              </button>
+            </div>
+
+            <div class="text-sm text-gray-600 mt-1">
+              <div class="flex items-center justify-between">
+                <span
+                  class="inline-block px-1 py-1 rounded text-xs"
+                  :style="{ backgroundColor: suggestion.color + '20', color: suggestion.color }"
+                >
+                  <img
+                    :src="zoneIcons[suggestion.zone.toLowerCase()]"
+                    alt="Zone icon"
+                    class="w-10 h-10"
+                  />
+                </span>
+                <div class="text-right">
+                  <div
+                    :class="activeFareType === 'regular' ? 'text-green-600' : 'text-blue-600'"
+                    class="font-medium"
+                  >
+                    ₱{{
+                      activeFareType === 'regular' ? suggestion.fare : suggestion.discountedFare
+                    }}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ activeFareType === 'regular' ? 'Regular fare' : 'PWD/Student/Senior' }}
+                  </div>
+                </div>
+              </div>
               <div class="text-xs text-gray-400 mt-1">
                 <span v-if="suggestion.startDistance > 0.1">
                   Start: {{ (suggestion.startDistance * 1000).toFixed(0) }}m walk
@@ -97,12 +192,47 @@
           </div>
         </div>
       </div>
-      <button
-        @click="$emit('clear-suggestions')"
-        class="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
-      >
-        Clear suggestions
-      </button>
+      <div class="flex gap-2 mt-3">
+        <button
+          @click="$emit('clear-suggestions')"
+          class="flex-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          Clear suggestions
+        </button>
+        <button
+          @click="handleReviewReportClick"
+          class="flex-1 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center justify-center"
+        >
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Review/Report
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Field Indicator with Auth Dropdown -->
+    <div class="absolute top-4 right-4 z-20 flex items-center gap-3">
+      <!-- Active Field Indicator -->
+      <div class="bg-white rounded-lg shadow-lg px-3 py-2">
+        <div class="text-sm font-medium text-gray-700">
+          Click map for:
+          <span
+            :class="activeField === 'start' ? 'text-green-600' : 'text-red-600'"
+            class="font-bold"
+          >
+            {{ activeField === 'start' ? 'Start' : 'End' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Auth Dropdown -->
+      <AuthDropdown ref="authComponent" @login="handleUserLogin" @logout="handleUserLogout" />
     </div>
 
     <!-- Search Input Container: Desktop -->
@@ -136,62 +266,62 @@
           </div>
         </div>
 
-        <div class="relative mb-2">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg
-              class="w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 15l7-7 7 7"
-              ></path>
-            </svg>
-          </div>
-          <input
-            v-model="localStart"
-            @input="handleInputChange($event.target.value, 'start')"
-            @focus="setActiveField('start')"
-            type="text"
-            placeholder="Start location (click map or search)"
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
+        <div class="relative flex flex-col gap-3">
+          <!-- SVG Road Path -->
+          <svg
+            class="absolute left-0 top-6 h-[55%] w-7 pointer-events-none"
+            viewBox="0 0 50 200"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <!-- Road shape -->
+            <path
+              d="M25 0 C25 40, 5 60, 25 100 C45 140, 25 160, 25 200"
+              stroke="#9CA3AF"
+              stroke-width="8"
+              stroke-linecap="round"
+            />
+            <!-- Road center line -->
+            <path
+              d="M25 0 C25 40, 5 60, 25 100 C45 140, 25 160, 25 200"
+              stroke="white"
+              stroke-width="2"
+              stroke-dasharray="6 6"
+              stroke-linecap="round"
+            />
+          </svg>
 
-        <div class="relative mb-3">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg
-              class="w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
+          <!-- Start -->
+          <div class="flex items-center">
+            <span class="material-icons text-green-500 text-3xl z-10"> location_on </span>
+            <input
+              v-model="localStart"
+              @input="handleInputChange($event.target.value, 'start')"
+              @focus="setActiveField('start')"
+              type="text"
+              placeholder="Start location (click map or search)"
+              class="ml-3 flex-1 py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200 outline-none"
+            />
           </div>
-          <input
-            v-model="localDestination"
-            @input="handleInputChange($event.target.value, 'destination')"
-            @focus="setActiveField('destination')"
-            type="text"
-            placeholder="Destination (click map or search)"
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+
+          <!-- Destination -->
+          <div class="flex items-center mb-2">
+            <span class="material-icons text-orange-500 text-3xl z-10"> location_on </span>
+            <input
+              v-model="localDestination"
+              @input="handleInputChange($event.target.value, 'destination')"
+              @focus="setActiveField('destination')"
+              type="text"
+              placeholder="Destination (click map or search)"
+              class="ml-3 flex-1 py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200 outline-none"
+            />
+          </div>
         </div>
 
         <button
           @click="$emit('find-route')"
           :disabled="!startCoords || !destinationCoords"
-          class="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+          class="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center mt-2"
         >
           <svg
             v-if="isLoading"
@@ -214,7 +344,8 @@
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          Find Ride
+          <span class="material-icons text-custom-green text-3xl z-10 mr-1"> directions </span>Find
+          Ride
         </button>
       </div>
     </div>
@@ -264,22 +395,55 @@
           </div>
         </div>
 
-        <input
-          v-model="localStart"
-          @input="handleInputChange($event.target.value, 'start')"
-          @focus="setActiveField('start')"
-          type="text"
-          placeholder="Start location (tap map or search)"
-          class="w-full mb-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        />
-        <input
-          v-model="localDestination"
-          @input="handleInputChange($event.target.value, 'destination')"
-          @focus="setActiveField('destination')"
-          type="text"
-          placeholder="Destination (tap map or search)"
-          class="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        />
+        <div class="relative flex flex-col gap-3 mb-3">
+          <!-- SVG Road Path for Mobile -->
+          <svg
+            class="absolute left-0 top-6 h-[55%] w-7 pointer-events-none"
+            viewBox="0 0 50 200"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M25 0 C25 40, 5 60, 25 100 C45 140, 25 160, 25 200"
+              stroke="#9CA3AF"
+              stroke-width="8"
+              stroke-linecap="round"
+            />
+            <path
+              d="M25 0 C25 40, 5 60, 25 100 C45 140, 25 160, 25 200"
+              stroke="white"
+              stroke-width="2"
+              stroke-dasharray="6 6"
+              stroke-linecap="round"
+            />
+          </svg>
+
+          <!-- Start Input for Mobile -->
+          <div class="flex items-center">
+            <span class="material-icons text-green-500 text-3xl z-10"> location_on </span>
+            <input
+              v-model="localStart"
+              @input="handleInputChange($event.target.value, 'start')"
+              @focus="setActiveField('start')"
+              type="text"
+              placeholder="Start location (tap map or search)"
+              class="ml-3 flex-1 py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200 outline-none"
+            />
+          </div>
+
+          <!-- Destination Input for Mobile -->
+          <div class="flex items-center">
+            <span class="material-icons text-orange-500 text-3xl z-10"> location_on </span>
+            <input
+              v-model="localDestination"
+              @input="handleInputChange($event.target.value, 'destination')"
+              @focus="setActiveField('destination')"
+              type="text"
+              placeholder="Destination (tap map or search)"
+              class="ml-3 flex-1 py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200 outline-none"
+            />
+          </div>
+        </div>
 
         <!-- Route Suggestions Panel (Mobile - Inside Bottom Sheet) -->
         <div v-if="routeSuggestions.length > 0" class="mb-4">
@@ -327,50 +491,24 @@
                   :key="legIndex"
                   class="ml-3 text-xs"
                 >
-                  <div class="flex items-center">
-                    <span
-                      class="w-2 h-2 rounded-full mr-2"
-                      :style="{ backgroundColor: leg.color }"
-                    ></span>
-                    <span class="font-medium">{{ leg.zone }} Zone</span>
-                    <span class="ml-2 text-gray-600">₱{{ leg.fare }}</span>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <span
+                        class="w-2 h-2 rounded-full mr-2"
+                        :style="{ backgroundColor: leg.color }"
+                      ></span>
+                      <span class="font-medium">{{ leg.zone }} Zone</span>
+                    </div>
+                    <div class="text-right">
+                      <div v-if="activeFareType === 'regular'" class="text-green-600 font-medium">
+                        ₱{{ leg.fare }}
+                      </div>
+                      <div v-else class="text-blue-600 font-medium">₱{{ leg.discountedFare }}</div>
+                      <div class="text-xs text-gray-500">
+                        {{ activeFareType === 'regular' ? 'Regular fare' : 'PWD/Student/Senior' }}
+                      </div>
+                    </div>
                   </div>
-                  <div class="text-xs text-gray-500 ml-4">{{ leg.description }}</div>
-                </div>
-
-                <div class="border-t pt-2 text-xs">
-                  <div class="flex justify-between items-center">
-                    <span class="font-semibold text-green-600"
-                      >Total: ₱{{ suggestion.totalFare }}</span
-                    >
-                    <span class="text-xs text-gray-500"
-                      >{{ suggestion.totalWalkDistance }}m walk</span
-                    >
-                  </div>
-                  <div v-if="suggestion.transferPoints" class="text-xs text-blue-600 mt-1">
-                    Transfer at: {{ suggestion.transferPoints.join(', ') }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Direct Route Display -->
-              <div v-else>
-                <div class="font-semibold text-blue-600 text-sm">{{ suggestion.route }}</div>
-                <div class="text-xs text-gray-600">{{ suggestion.description }}</div>
-                <div
-                  v-if="suggestion.actualDistance && suggestion.actualDuration"
-                  class="text-xs text-blue-600 mt-1"
-                >
-                  📍 Route: {{ suggestion.actualDistance }}km • {{ suggestion.actualDuration }} min
-                </div>
-                <div class="text-xs text-gray-600 mt-1">
-                  <span
-                    class="inline-block px-2 py-1 rounded text-xs"
-                    :style="{ backgroundColor: suggestion.color + '20', color: suggestion.color }"
-                  >
-                    {{ suggestion.zone }} Zone
-                  </span>
-                  <span class="ml-2 text-green-600 font-medium">₱{{ suggestion.fare }}</span>
                   <div class="text-xs text-gray-400 mt-1">
                     <span v-if="suggestion.startDistance > 0.1">
                       Start: {{ (suggestion.startDistance * 1000).toFixed(0) }}m walk
@@ -383,12 +521,28 @@
               </div>
             </div>
           </div>
-          <button
-            @click="$emit('clear-suggestions')"
-            class="w-full mt-3 text-xs text-gray-500 hover:text-gray-700"
-          >
-            Clear suggestions
-          </button>
+          <div class="flex gap-2 mt-3">
+            <button
+              @click="$emit('clear-suggestions')"
+              class="flex-1 text-xs text-gray-500 hover:text-gray-700"
+            >
+              Clear suggestions
+            </button>
+            <button
+              @click="handleReviewReportClick"
+              class="flex-1 text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center justify-center"
+            >
+              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Review/Report
+            </button>
+          </div>
         </div>
 
         <button
@@ -421,11 +575,35 @@
         </button>
       </div>
     </div>
+
+    <!-- Review/Report Modal -->
+    <ReviewReportModal
+      :show="showReviewModal"
+      :user="currentUser"
+      @close="showReviewModal = false"
+      @submit="handleReviewSubmitted"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
+import AuthDropdown from './Auth.vue'
+import ReviewReportModal from './ReportModal.vue'
+
+import redIcon from '@/assets/red_icon.ico'
+import orangeIcon from '@/assets/orange_icon.ico'
+import yellowIcon from '@/assets/yellow_icon.ico'
+import whiteIcon from '@/assets/white_icon.ico'
+import greenIcon from '@/assets/green_icon.ico'
+
+const zoneIcons = {
+  red: redIcon,
+  orange: orangeIcon,
+  yellow: yellowIcon,
+  white: whiteIcon,
+  green: greenIcon,
+}
 
 // Props
 const props = defineProps({
@@ -480,6 +658,12 @@ const localStart = ref(props.start)
 const localDestination = ref(props.destination)
 const showSuggestions = ref(false)
 const isOpen = ref(true)
+const activeFareType = ref('regular')
+const showReviewModal = ref(false)
+const currentUser = ref(null)
+
+// Component refs
+const authComponent = ref(null)
 
 // Watch for prop changes
 watch(
@@ -521,6 +705,42 @@ const selectSuggestion = (place) => {
   emit('place-selected', { place, activeField: props.activeField })
 }
 
+// Handle user login
+const handleUserLogin = (userData) => {
+  currentUser.value = userData
+  console.log('User logged in:', userData)
+}
+
+// Handle user logout
+const handleUserLogout = () => {
+  currentUser.value = null
+  console.log('User logged out')
+}
+
+// Handle review/report button click
+const handleReviewReportClick = () => {
+  // Check if user is logged in
+  const isLoggedIn = authComponent.value?.isLoggedIn()
+
+  if (isLoggedIn) {
+    // User is logged in, show the review/report modal
+    showReviewModal.value = true
+  } else {
+    // User is not logged in, show login modal
+    authComponent.value?.openLoginModal()
+    // Show a message to inform user they need to login
+    setTimeout(() => {
+      alert('Please login or sign up to submit a review or report.')
+    }, 100)
+  }
+}
+
+// Handle review submission
+const handleReviewSubmitted = (reviewData) => {
+  console.log('Review/Report submitted:', reviewData)
+  // Here you would typically send this data to your backend API
+}
+
 // Draggable bottom sheet logic for mobile
 let startY = 0
 let currentY = 0
@@ -554,5 +774,29 @@ watch(
 </script>
 
 <style scoped>
-/* Any component-specific styles can be added here */
+/* Custom color palette */
+.text-custom-green {
+  color: #10b981;
+}
+.bg-custom-green {
+  background-color: #10b981;
+}
+.text-custom-orange {
+  color: #f97316;
+}
+.bg-custom-orange {
+  background-color: #f97316;
+}
+.text-custom-blue {
+  color: #3b82f6;
+}
+.bg-custom-blue {
+  background-color: #3b82f6;
+}
+.text-custom-yellow {
+  color: #f59e0b;
+}
+.bg-custom-yellow {
+  background-color: #f59e0b;
+}
 </style>

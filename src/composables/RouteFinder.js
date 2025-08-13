@@ -1,13 +1,27 @@
+// Main route suggestion logic with fare calculation options
 // composables/RouteFinder.js
 export class RouteFinder {
   constructor() {
     this.loadedRoutes = []
     this.zoneConfig = {
-      orange: { name: 'Orange Zone Tricycle Route', color: '#ea580c', baseFare: 15 },
-      red: { name: 'Red Zone Tricycle Route', color: '#dc2626', baseFare: 12 },
-      white: { name: 'White Zone Tricycle Route', color: '#000', baseFare: 18 },
-      green: { name: 'Green Zone Tricycle Route', color: '#16a34a', baseFare: 14 },
+      orange: { name: 'Orange Zone Tricycle Route', color: '#ea580c' },
+      red: { name: 'Red Zone Tricycle Route', color: '#dc2626' },
+      white: { name: 'White Zone Tricycle Route', color: '#000' },
+      green: { name: 'Green Zone Tricycle Route', color: '#16a34a' },
     }
+
+    // Official Butuan City Tricycle Fare Matrix
+    this.fareMatrix = [
+      { gasMin: 45.0, gasMax: 55.0, regularFare: 8.0, discountedFare: 6.0 },
+      { gasMin: 56.0, gasMax: 65.0, regularFare: 9.0, discountedFare: 7.0 },
+      { gasMin: 66.0, gasMax: 75.0, regularFare: 10.0, discountedFare: 8.0 },
+      { gasMin: 76.0, gasMax: 85.0, regularFare: 11.0, discountedFare: 9.0 },
+      { gasMin: 86.0, gasMax: 95.0, regularFare: 12.0, discountedFare: 10.0 },
+      { gasMin: 96.0, gasMax: 105.0, regularFare: 13.0, discountedFare: 11.0 },
+    ]
+
+    // Current gas price (this should be updated regularly or fetched from an API)
+    this.currentGasPrice = 56.0 // Default to mid-range, should be configurable
 
     this.butuanPlaces = [
       { name: 'Butuan City Hall', lat: 8.953775339827885, lng: 125.52922189368539 },
@@ -26,6 +40,42 @@ export class RouteFinder {
       { name: 'Butuan Bridge', lat: 8.9489, lng: 125.5478 },
       { name: 'RTR Plaza', lat: 8.9487, lng: 125.5421 },
     ]
+  }
+
+  // Set current gas price (should be called when gas price updates)
+  setGasPrice(price) {
+    this.currentGasPrice = price
+  }
+
+  // Get current gas price
+  getGasPrice() {
+    return this.currentGasPrice
+  }
+
+  // Calculate fare based on official Butuan City fare matrix
+  calculateFare(distance, isDiscounted = false) {
+    // Find the appropriate fare bracket based on current gas price
+    const fareData = this.fareMatrix.find(
+      (bracket) => this.currentGasPrice >= bracket.gasMin && this.currentGasPrice <= bracket.gasMax,
+    )
+
+    // If gas price is outside known range, use the closest bracket
+    const selectedFare =
+      fareData ||
+      (this.currentGasPrice < 45 ? this.fareMatrix[0] : this.fareMatrix[this.fareMatrix.length - 1])
+
+    // Base fare for first 4km
+    const baseFare = isDiscounted ? selectedFare.discountedFare : selectedFare.regularFare
+
+    // Additional fare calculation
+    if (distance <= 4) {
+      return baseFare
+    } else {
+      // Additional fare per km after first 4km
+      const additionalKm = distance - 4
+      const additionalFarePerKm = isDiscounted ? 0.8 : 1.0
+      return baseFare + Math.ceil(additionalKm) * additionalFarePerKm
+    }
   }
 
   // Load zone data from predefined files
@@ -111,7 +161,6 @@ export class RouteFinder {
       name: config.name,
       zone: zoneType.charAt(0).toUpperCase() + zoneType.slice(1),
       color: config.color,
-      baseFare: config.baseFare,
       bounds: { north: maxLat, south: minLat, east: maxLng, west: minLng },
       routes: routePaths,
       properties: { combined: true, zoneType },
@@ -168,11 +217,6 @@ export class RouteFinder {
     return { point: nearestPoint, distance: minDistance }
   }
 
-  // Calculate fare based on distance
-  calculateFare(distance, baseFare) {
-    return baseFare + Math.max(0, Math.floor((distance - 1) * 5)) // ₱5 per km after first km
-  }
-
   // Get route description based on walking distances
   getRouteDescription(startDist, endDist) {
     if (startDist < 0.1 && endDist < 0.1) return 'Direct route available'
@@ -219,7 +263,7 @@ export class RouteFinder {
   }
 
   // Find best transfer combinations
-  findBestTransfers(startPoint, endPoint, transferOptions) {
+  findBestTransfers(startPoint, endPoint, transferOptions, isDiscounted = false) {
     const transfers = []
 
     const startRoutes = transferOptions.filter((opt) => opt.startAccessible)
@@ -237,9 +281,12 @@ export class RouteFinder {
             const leg2Distance = this.calculateDistance(bestTransfer.route2Point, endPoint)
             const transferWalkDistance = bestTransfer.distance * 1000
 
-            const leg1Fare = this.calculateFare(leg1Distance, startRoute.route.baseFare)
-            const leg2Fare = this.calculateFare(leg2Distance, endRoute.route.baseFare)
+            const leg1Fare = this.calculateFare(leg1Distance, false)
+            const leg2Fare = this.calculateFare(leg2Distance, false)
+            const leg1DiscountedFare = this.calculateFare(leg1Distance, true)
+            const leg2DiscountedFare = this.calculateFare(leg2Distance, true)
             const totalFare = leg1Fare + leg2Fare
+            const totalDiscountedFare = leg1DiscountedFare + leg2DiscountedFare
 
             const totalWalkDistance =
               startRoute.startDistance * 1000 + transferWalkDistance + endRoute.endDistance * 1000
@@ -248,6 +295,7 @@ export class RouteFinder {
               transfers.push({
                 type: 'transfer',
                 totalFare: totalFare,
+                totalDiscountedFare: totalDiscountedFare,
                 totalWalkDistance: Math.round(totalWalkDistance),
                 transferCount: 1,
                 legs: [
@@ -255,12 +303,14 @@ export class RouteFinder {
                     zone: startRoute.route.zone,
                     color: startRoute.route.color,
                     fare: leg1Fare,
+                    discountedFare: leg1DiscountedFare,
                     description: `${startRoute.route.zone} Zone - ${leg1Distance.toFixed(1)}km`,
                   },
                   {
                     zone: endRoute.route.zone,
                     color: endRoute.route.color,
                     fare: leg2Fare,
+                    discountedFare: leg2DiscountedFare,
                     description: `${endRoute.route.zone} Zone - ${leg2Distance.toFixed(1)}km`,
                   },
                 ],
@@ -269,6 +319,8 @@ export class RouteFinder {
                 ],
                 routeData: [startRoute.route, endRoute.route],
                 transferPoint: bestTransfer.point,
+                gasPrice: this.currentGasPrice,
+                isDiscounted: isDiscounted,
               })
             }
           }
@@ -279,8 +331,8 @@ export class RouteFinder {
     return transfers
   }
 
-  // Main route suggestion logic
-  suggestTricycleRouteWithTransfers(startPoint, endPoint) {
+  // Main route suggestion logic with fare calculation options
+  suggestTricycleRouteWithTransfers(startPoint, endPoint, isDiscounted = false) {
     if (this.loadedRoutes.length === 0) return []
 
     const suggestions = []
@@ -295,7 +347,8 @@ export class RouteFinder {
 
       // Direct route within same zone (walking distance < 500m)
       if (startDistance < 0.5 && endDistance < 0.5) {
-        const fare = this.calculateFare(totalDistance, route.baseFare)
+        const fare = this.calculateFare(totalDistance, false)
+        const discountedFare = this.calculateFare(totalDistance, true)
 
         directRoutes.push({
           type: 'direct',
@@ -303,12 +356,17 @@ export class RouteFinder {
           zone: route.zone,
           color: route.color,
           fare: fare,
+          discountedFare: discountedFare,
           description: this.getRouteDescription(startDistance, endDistance),
           startDistance: startDistance,
           endDistance: endDistance,
           routeData: route,
           totalFare: fare,
+          totalDiscountedFare: discountedFare,
           transferCount: 0,
+          distance: totalDistance,
+          gasPrice: this.currentGasPrice,
+          isDiscounted: isDiscounted,
         })
       }
 
@@ -329,7 +387,7 @@ export class RouteFinder {
 
     // Find transfer routes if no direct routes or if we have multiple zones
     if (directRoutes.length === 0 && transferOptions.length > 1) {
-      const transfers = this.findBestTransfers(startPoint, endPoint, transferOptions)
+      const transfers = this.findBestTransfers(startPoint, endPoint, transferOptions, isDiscounted)
       suggestions.push(...transfers)
     }
 
@@ -342,6 +400,19 @@ export class RouteFinder {
         return a.totalFare - b.totalFare
       })
       .slice(0, 5)
+  }
+
+  // Get current fare matrix information
+  getFareMatrix() {
+    return {
+      currentGasPrice: this.currentGasPrice,
+      matrix: this.fareMatrix,
+      currentBracket:
+        this.fareMatrix.find(
+          (bracket) =>
+            this.currentGasPrice >= bracket.gasMin && this.currentGasPrice <= bracket.gasMax,
+        ) || this.fareMatrix[this.fareMatrix.length - 1],
+    }
   }
 
   // Search places by query
