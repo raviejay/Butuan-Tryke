@@ -231,7 +231,7 @@
         </div>
       </div>
 
-      <!-- Auth Dropdown -->
+      <!-- Auth Dropdown to be remove the login and handleUSerlogin-->
       <AuthDropdown ref="authComponent" @login="handleUserLogin" @logout="handleUserLogout" />
     </div>
 
@@ -352,17 +352,18 @@
 
     <!-- Bottom Sheet (Mobile Only) -->
     <div
-      class="md:hidden fixed bottom-0 left-0 w-full bg-white rounded-t-2xl shadow-lg transition-transform duration-300 z-20"
-      :class="{
-        'translate-y-[70%]': !isOpen && routeSuggestions.length === 0,
-        'translate-y-0': isOpen || routeSuggestions.length > 0,
-      }"
-      @touchstart="startDrag"
-      @touchmove="onDrag"
-      @touchend="endDrag"
+      class="md:hidden fixed bottom-0 left-0 w-full bg-white rounded-t-2xl shadow-lg transition-transform duration-300 z-10"
+      :class="isOpen ? 'translate-y-0' : 'translate-y-[76%]'"
     >
       <!-- Drag Handle -->
-      <div class="w-full flex justify-center py-2">
+      <!-- Drag Handle -->
+      <div
+        class="w-full flex justify-center py-2 select-none"
+        @touchstart.stop.prevent="startDrag"
+        @touchmove.stop.prevent="onDrag"
+        @touchend.stop="endDrag"
+        @touchcancel.stop="endDrag"
+      >
         <div class="h-1.5 w-12 bg-gray-400 rounded-full"></div>
       </div>
 
@@ -519,6 +520,107 @@
                   </div>
                 </div>
               </div>
+              <div v-else>
+                <div class="font-semibold text-blue-600">{{ suggestion.route }}</div>
+                <div class="text-sm text-gray-600">{{ suggestion.description }}</div>
+                <div
+                  v-if="suggestion.actualDistance && suggestion.actualDuration"
+                  class="text-xs text-blue-600 mt-1 flex items-center"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 text-blue-500 mr-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  Route: {{ suggestion.actualDistance }}km • {{ suggestion.actualDuration }} min
+                </div>
+
+                <!-- Fare Type Toggle -->
+                <div class="flex border-b border-gray-300 mt-2 mb-4">
+                  <button
+                    @click.stop="activeFareType = 'regular'"
+                    class="flex-1 py-2 text-sm font-medium text-center relative transition-colors duration-200"
+                    :class="
+                      activeFareType === 'regular'
+                        ? 'text-green-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    "
+                  >
+                    Regular
+                    <span
+                      v-if="activeFareType === 'regular'"
+                      class="absolute bottom-0 left-0 w-full h-0.5 bg-green-600 rounded transition-all duration-200"
+                    ></span>
+                  </button>
+
+                  <button
+                    @click.stop="activeFareType = 'discounted'"
+                    class="flex-1 py-2 text-sm font-medium text-center relative transition-colors duration-200"
+                    :class="
+                      activeFareType === 'discounted'
+                        ? 'text-green-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    "
+                  >
+                    Discounted
+                    <span
+                      v-if="activeFareType === 'discounted'"
+                      class="absolute bottom-0 left-0 w-full h-0.5 bg-green-600 rounded transition-all duration-200"
+                    ></span>
+                  </button>
+                </div>
+
+                <div class="text-sm text-gray-600 mt-1">
+                  <div class="flex items-center justify-between">
+                    <span
+                      class="inline-block px-1 py-1 rounded text-xs"
+                      :style="{ backgroundColor: suggestion.color + '20', color: suggestion.color }"
+                    >
+                      <img
+                        :src="zoneIcons[suggestion.zone.toLowerCase()]"
+                        alt="Zone icon"
+                        class="w-10 h-10"
+                      />
+                    </span>
+                    <div class="text-right">
+                      <div
+                        :class="activeFareType === 'regular' ? 'text-green-600' : 'text-blue-600'"
+                        class="font-medium"
+                      >
+                        ₱{{
+                          activeFareType === 'regular' ? suggestion.fare : suggestion.discountedFare
+                        }}
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {{ activeFareType === 'regular' ? 'Regular fare' : 'PWD/Student/Senior' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    <span v-if="suggestion.startDistance > 0.1">
+                      Start: {{ (suggestion.startDistance * 1000).toFixed(0) }}m walk
+                    </span>
+                    <span v-if="suggestion.endDistance > 0.1" class="ml-2">
+                      End: {{ (suggestion.endDistance * 1000).toFixed(0) }}m walk
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex gap-2 mt-3">
@@ -579,7 +681,7 @@
     <!-- Review/Report Modal -->
     <ReviewReportModal
       :show="showReviewModal"
-      :user="currentUser"
+      :user="authComponent"
       @close="showReviewModal = false"
       @submit="handleReviewSubmitted"
     />
@@ -741,17 +843,27 @@ const handleReviewSubmitted = (reviewData) => {
   // Here you would typically send this data to your backend API
 }
 
+const handleManageReports = () => {
+  // Navigate to reports management page
+  // Example: router.push('/admin/reports')
+}
+
+const handleManageUsers = () => {
+  // Navigate to user management page
+  // Example: router.push('/admin/users')
+}
+
+// Draggable bottom sheet logic for mobile
 // Draggable bottom sheet logic for mobile
 let startY = 0
-let currentY = 0
 let dragDiff = 0
 
 const startDrag = (e) => {
-  startY = e.touches[0].clientY
+  startY = e.touches?.[0]?.clientY ?? e.clientY
 }
 
 const onDrag = (e) => {
-  currentY = e.touches[0].clientY
+  const currentY = e.touches?.[0]?.clientY ?? e.clientY
   dragDiff = currentY - startY
 }
 
@@ -763,6 +875,14 @@ const endDrag = () => {
   }
   dragDiff = 0
 }
+
+// Optional: auto-open when suggestions first appear, but don’t force it
+watch(
+  () => props.routeSuggestions.length,
+  (len, prev) => {
+    if (len > 0 && prev === 0) isOpen.value = true
+  },
+)
 
 // Watch for suggestions to show/hide suggestions dropdown
 watch(

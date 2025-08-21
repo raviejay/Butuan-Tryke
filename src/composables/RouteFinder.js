@@ -1,4 +1,5 @@
 // Main route suggestion logic with fare calculation options
+import { supabase } from '@/composables/useSupabase'
 // composables/RouteFinder.js
 export class RouteFinder {
   constructor() {
@@ -80,24 +81,25 @@ export class RouteFinder {
 
   // Load zone data from predefined files
   async loadZoneData() {
-    const zoneFiles = [
-      { url: '/data/orange_routes_final.geojson', type: 'orange' },
-      { url: '/data/red_tricycle_zone.geojson', type: 'red' },
-      { url: '/data/white_routes.geojson', type: 'white' },
-      { url: '/data/green_routes.geojson', type: 'green' },
-    ]
-
+    const zoneTypes = ['orange', 'red', 'white', 'green']
     const routes = []
 
-    for (const { url, type } of zoneFiles) {
+    for (const zoneType of zoneTypes) {
       try {
-        const response = await fetch(url)
-        if (response.ok) {
-          const geojsonData = await response.json()
-          routes.push(this.processGeoJSONRoutes(geojsonData, type))
+        const { data, error } = await supabase
+          .from('route_zones')
+          .select('*')
+          .eq('zone_type', zoneType)
+
+        if (error) throw error
+
+        if (data && data.length > 0) {
+          // If storing as JSONB (Option 1)
+          const geojsonData = data[0].geojson_data
+          routes.push(this.processGeoJSONRoutes(geojsonData, zoneType))
         }
       } catch (error) {
-        console.warn(`Failed to load ${type} zone:`, error)
+        console.warn(`Failed to load ${zoneType} zone from Supabase:`, error)
       }
     }
 

@@ -11,7 +11,7 @@ const router = createRouter({
     },
     {
       path: '/auth/callback',
-      redirect: '/', // redirect to home
+      redirect: '/',
     },
   ],
 })

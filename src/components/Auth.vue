@@ -59,9 +59,33 @@
         <div class="px-4 py-2 border-b border-gray-200">
           <p class="text-sm font-medium text-gray-900">
             {{ currentUser.user_metadata?.full_name || currentUser.email }}
+            <span v-if="userRole" class="text-xs pl-0.5 text-orange-600 font-medium capitalize">
+              {{ userRole }}
+            </span>
           </p>
           <p class="text-xs text-gray-500">{{ currentUser.email }}</p>
         </div>
+
+        <!-- Admin-only options -->
+        <template v-if="isAdmin">
+          <button
+            @click="handleDashboard"
+            class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Dashboard
+          </button>
+
+          <div class="border-t border-gray-200 my-2"></div>
+        </template>
+
         <button
           @click="logout"
           class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
@@ -302,13 +326,14 @@
         </p>
       </div>
     </div>
+    <AdminDashboard v-if="showDashboard" :currentUser="currentUser" @close="closeDashboard" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { supabase } from '@/composables/useSupabase'
-
+import AdminDashboard from '@/components/admin/Dashboard.vue'
 // Props
 const props = defineProps({
   modelValue: {
@@ -318,7 +343,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['update:modelValue', 'login', 'logout'])
+const emit = defineEmits(['update:modelValue', 'login', 'logout', 'dashboard'])
 
 // Reactive state
 const showDropdown = ref(false)
@@ -327,7 +352,9 @@ const showSignupModal = ref(false)
 const isLoading = ref(false)
 const isLoggedIn = ref(false)
 const currentUser = ref(null)
+const userRole = ref('')
 const errorMessage = ref('')
+const showDashboard = ref(false)
 
 // Form data
 const loginForm = ref({
@@ -346,12 +373,17 @@ const signupForm = ref({
 const userInitials = computed(() => {
   if (!currentUser.value) return ''
   const name = currentUser.value.user_metadata?.full_name || currentUser.value.email
+
   return name
     .split(' ')
     .map((word) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
+})
+
+const isAdmin = computed(() => {
+  return userRole.value === 'admin'
 })
 
 // Methods
@@ -409,6 +441,20 @@ const resetSignupForm = () => {
   }
 }
 
+// Fetch user role from profiles table
+const fetchUserRole = async (userId) => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).single()
+
+    if (error) throw error
+
+    userRole.value = data?.role || 'user'
+  } catch (error) {
+    console.error('Error fetching user role:', error)
+    userRole.value = 'user' // Default to user role
+  }
+}
+
 const handleLogin = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -423,6 +469,7 @@ const handleLogin = async () => {
 
     currentUser.value = data.user
     isLoggedIn.value = true
+    await fetchUserRole(data.user.id)
     closeLoginModal()
     emit('login', data.user)
   } catch (error) {
@@ -460,6 +507,7 @@ const handleSignup = async () => {
       if (data.user.email_confirmed_at) {
         currentUser.value = data.user
         isLoggedIn.value = true
+        await fetchUserRole(data.user.id)
         closeSignupModal()
         emit('login', data.user)
       } else {
@@ -501,11 +549,24 @@ const logout = async () => {
 
     currentUser.value = null
     isLoggedIn.value = false
+    userRole.value = ''
     showDropdown.value = false
     emit('logout')
   } catch (error) {
     console.error('Logout failed:', error)
   }
+}
+
+// Admin action handlers
+
+const handleDashboard = () => {
+  showDropdown.value = false
+  showDashboard.value = true
+  emit('dashboard')
+}
+
+const closeDashboard = () => {
+  showDashboard.value = false
 }
 
 // Click outside handler
@@ -524,19 +585,22 @@ onMounted(async () => {
   if (session) {
     currentUser.value = session.user
     isLoggedIn.value = true
+    await fetchUserRole(session.user.id)
   }
 
   // Listen for auth changes
-  supabase.auth.onAuthStateChange((event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       currentUser.value = session.user
       isLoggedIn.value = true
+      await fetchUserRole(session.user.id)
       closeLoginModal()
       closeSignupModal()
       emit('login', session.user)
     } else if (event === 'SIGNED_OUT') {
       currentUser.value = null
       isLoggedIn.value = false
+      userRole.value = ''
       emit('logout')
     }
   })
@@ -552,6 +616,8 @@ onUnmounted(() => {
 defineExpose({
   isLoggedIn: () => isLoggedIn.value,
   currentUser: () => currentUser.value,
+  userRole: () => userRole.value,
+  isAdmin: () => isAdmin.value,
   openLoginModal: () => openLoginModal(),
 })
 </script>

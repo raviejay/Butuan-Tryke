@@ -121,6 +121,8 @@ const handlePlaceSelected = async ({ place, activeField: field }) => {
   }
 
   searchSuggestions.value = []
+
+  // Removed auto-triggering - now only triggers when "Find Ride" button is clicked
 }
 
 // Main function to find tricycle route
