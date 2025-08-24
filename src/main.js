@@ -1,5 +1,7 @@
 import './assets/main.css'
 import 'leaflet/dist/leaflet.css'
+import 'material-symbols'
+import 'material-icons/iconfont/material-icons.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

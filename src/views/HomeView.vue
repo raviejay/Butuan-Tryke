@@ -1,33 +1,45 @@
 <template>
   <div class="relative w-screen h-screen">
-    <!-- Map Display Component -->
-    <MapDisplay
-      ref="mapComponent"
-      :active-field="activeField"
-      :route-suggestions="routeSuggestions"
-      :loaded-routes="loadedRoutes"
+    <!-- Splash Screen - Show while loading -->
+    <SplashScreen
+      v-if="isLoading || loadingError"
       :is-loading="isLoading"
-      :loading-error="loadingError"
-      @map-click="handleMapClick"
-      @routes-loaded="initializeRoutes"
+      :error="loadingError"
+      :progress="loadingProgress"
+      @retry="retryLoading"
     />
 
-    <!-- Route Search Component -->
-    <RouteSearch
-      v-model:start="start"
-      v-model:destination="destination"
-      v-model:active-field="activeField"
-      :start-coords="startCoords"
-      :destination-coords="destinationCoords"
-      :route-suggestions="routeSuggestions"
-      :search-suggestions="searchSuggestions"
-      :is-loading="isProcessing"
-      @input-change="handleInputChange"
-      @place-selected="handlePlaceSelected"
-      @find-route="findTricycleRoute"
-      @highlight-route="highlightRoute"
-      @clear-suggestions="clearSuggestions"
-    />
+    <!-- Main App Content - Show after loading completes -->
+    <template v-else>
+      <!-- Map Display Component -->
+      <MapDisplay
+        ref="mapComponent"
+        :active-field="activeField"
+        :route-suggestions="routeSuggestions"
+        :loaded-routes="loadedRoutes"
+        :is-loading="isLoading"
+        :loading-error="loadingError"
+        @map-click="handleMapClick"
+        @routes-loaded="initializeRoutes"
+      />
+
+      <!-- Route Search Component -->
+      <RouteSearch
+        v-model:start="start"
+        v-model:destination="destination"
+        v-model:active-field="activeField"
+        :start-coords="startCoords"
+        :destination-coords="destinationCoords"
+        :route-suggestions="routeSuggestions"
+        :search-suggestions="searchSuggestions"
+        :is-loading="isProcessing"
+        @input-change="handleInputChange"
+        @place-selected="handlePlaceSelected"
+        @find-route="findTricycleRoute"
+        @highlight-route="highlightRoute"
+        @clear-suggestions="clearSuggestions"
+      />
+    </template>
   </div>
 </template>
 
@@ -35,6 +47,7 @@
 import { ref, onMounted } from 'vue'
 import MapDisplay from '@/components/MapDisplay.vue'
 import RouteSearch from '@/components/RouteSearch.vue'
+import SplashScreen from './Splashscreen.vue'
 import { RouteFinder } from '@/composables/RouteFinder.js'
 
 // Reactive state
@@ -44,9 +57,10 @@ const activeField = ref('start')
 const searchSuggestions = ref([])
 const routeSuggestions = ref([])
 const loadedRoutes = ref([])
-const isLoading = ref(false)
+const isLoading = ref(true) // Start with loading true
 const isProcessing = ref(false)
 const loadingError = ref(null)
+const loadingProgress = ref(0)
 
 // Coordinates for routing
 const startCoords = ref(null)
@@ -97,15 +111,19 @@ const handleMapClick = async ({ lat, lng, activeField: field }) => {
       // Keep the coordinate format if reverse geocoding fails
       console.log('Reverse geocoding failed, keeping coordinate format')
     })
-
-  // Removed auto-triggering - now only triggers when "Find Ride" button is clicked
 }
 
 // Handle input changes for search
-const handleInputChange = ({ value, field }) => {
+const handleInputChange = async ({ value, field }) => {
   activeField.value = field
-  const suggestions = routeFinder.searchPlaces(value)
-  searchSuggestions.value = suggestions
+
+  try {
+    const suggestions = await routeFinder.searchPlaces(value)
+    searchSuggestions.value = suggestions
+  } catch (error) {
+    console.error('Error getting suggestions:', error)
+    searchSuggestions.value = []
+  }
 }
 
 // Handle place selection from suggestions
@@ -195,22 +213,51 @@ const clearSuggestions = () => {
 
 // Initialize routes when map is ready
 const initializeRoutes = async () => {
+  // This can be called from MapDisplay component if needed
+  // But main loading should be handled in onMounted
+}
+
+// Retry loading function for splash screen
+const retryLoading = async () => {
+  loadingError.value = null
+  loadingProgress.value = 0
+  await loadAppData()
+}
+
+// Main loading function
+const loadAppData = async () => {
   isLoading.value = true
   loadingError.value = null
+  loadingProgress.value = 0
 
   try {
+    // Simulate loading steps with progress
+    loadingProgress.value = 25
+
+    // Load zone data
     const routes = await routeFinder.loadZoneData()
     loadedRoutes.value = routes
+    loadingProgress.value = 75
+
+    // Additional initialization if needed
+    await new Promise((resolve) => setTimeout(resolve, 500)) // Small delay for UX
+    loadingProgress.value = 100
+
+    // Small delay before hiding splash screen
+    await new Promise((resolve) => setTimeout(resolve, 300))
   } catch (error) {
-    console.error('Error loading routes:', error)
-    loadingError.value = error.message || 'Failed to load route data'
+    console.error('Error loading app data:', error)
+    loadingError.value = error.message || 'Failed to load application data'
+    loadingProgress.value = 0
   } finally {
-    isLoading.value = false
+    if (!loadingError.value) {
+      isLoading.value = false
+    }
   }
 }
 
 onMounted(async () => {
-  // Initialize route finder data
-  await initializeRoutes()
+  // Load all app data on mount
+  await loadAppData()
 })
 </script>

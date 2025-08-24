@@ -42,7 +42,7 @@
     </div>
 
     <!-- Active Field Indicator -->
-    <div class="absolute top-4 right-4 z-20 bg-white rounded-lg shadow-lg px-3 py-2">
+    <!-- <div class="absolute top-4 right-4 z-20 bg-white rounded-lg shadow-lg px-3 py-2">
       <div class="text-sm font-medium text-gray-700">
         Click map for:
         <span
@@ -52,7 +52,7 @@
           {{ activeField === 'start' ? 'Start' : 'End' }}
         </span>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -255,7 +255,7 @@ const addRouteLayersToMap = () => {
       const polyline = L.polyline(routePath, {
         color: route.color,
         weight: 3,
-        opacity: 0.7,
+        opacity: 0,
         dashArray: '8, 12',
       })
       routeLayerGroup.value.addLayer(polyline)

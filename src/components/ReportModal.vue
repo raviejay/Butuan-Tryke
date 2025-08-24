@@ -1,0 +1,507 @@
+<template>
+  <!-- Review/Report Modal -->
+  <div
+    v-if="showModal"
+    class="fixed inset-0 bg-black/30 backdrop-blur-sm md:bg-opacity-50 flex items-center justify-center z-50 p-0 md:p-4"
+    @click.self="closeModal"
+  >
+    <div
+      class="bg-white w-full h-full md:rounded-xl md:w-full md:max-w-lg md:h-auto md:max-h-[90vh] overflow-y-auto"
+    >
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center">
+            <svg
+              class="w-6 h-6 text-orange-600 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Submit Review/Report
+          </h2>
+          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Custom Alert Component -->
+        <div
+          v-if="alert.show"
+          class="mb-4 p-4 rounded-lg border-l-4 transition-all duration-300 ease-in-out"
+          :class="alertClasses"
+        >
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <!-- Success Icon -->
+              <svg
+                v-if="alert.type === 'success'"
+                class="w-5 h-5 text-green-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <!-- Error Icon -->
+              <svg
+                v-else-if="alert.type === 'error'"
+                class="w-5 h-5 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <!-- Info Icon -->
+              <svg v-else class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div class="ml-3 flex-1">
+              <p
+                class="text-sm font-medium"
+                :class="
+                  alert.type === 'success'
+                    ? 'text-green-800'
+                    : alert.type === 'error'
+                      ? 'text-red-800'
+                      : 'text-blue-800'
+                "
+              >
+                {{ alert.message }}
+              </p>
+            </div>
+            <div class="ml-auto pl-3">
+              <button
+                @click="hideAlert"
+                class="inline-flex rounded-md p-1.5 transition-colors"
+                :class="
+                  alert.type === 'success'
+                    ? 'text-green-500 hover:bg-green-100'
+                    : alert.type === 'error'
+                      ? 'text-red-500 hover:bg-red-100'
+                      : 'text-blue-500 hover:bg-blue-100'
+                "
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <form @submit.prevent="submitReport">
+          <!-- Report Type -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+            <div class="flex gap-3">
+              <label class="flex items-center">
+                <input
+                  v-model="reportForm.type"
+                  type="radio"
+                  value="review"
+                  class="text-orange-600 focus:ring-orange-500"
+                />
+                <span class="ml-2 text-sm text-gray-700">Review</span>
+              </label>
+              <label class="flex items-center">
+                <input
+                  v-model="reportForm.type"
+                  type="radio"
+                  value="report"
+                  class="text-orange-600 focus:ring-orange-500"
+                />
+                <span class="ml-2 text-sm text-gray-700">Report Issue</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Body Number (Only for reports) -->
+          <div v-if="reportForm.type === 'report'" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tricycle Body Number</label>
+            <input
+              v-model="reportForm.bodyNumber"
+              type="text"
+              required
+              maxlength="20"
+              placeholder="Enter the tricycle body number"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+
+          <!-- Zone Selection -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Zone/Route</label>
+            <select
+              v-model="reportForm.zone"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="">Select a zone/route</option>
+              <option value="red">Red Zone</option>
+              <option value="orange">Orange Zone</option>
+              <option value="yellow">Yellow Zone</option>
+              <option value="green">Green Zone</option>
+              <option value="white">White Zone</option>
+              <option value="general">General/Multiple Zones</option>
+            </select>
+          </div>
+
+          <!-- Rating (Only for reviews) -->
+          <div v-if="reportForm.type === 'review'" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+            <div class="flex items-center space-x-1">
+              <button
+                v-for="star in 5"
+                :key="star"
+                type="button"
+                @click="setRating(star)"
+                class="p-1 rounded transition-colors"
+                :class="star <= reportForm.rating ? 'text-yellow-400' : 'text-gray-300'"
+              >
+                <svg class="w-6 h-6 fill-current" viewBox="0 0 20 20">
+                  <path
+                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                  />
+                </svg>
+              </button>
+              <span class="ml-2 text-sm text-gray-600">
+                {{
+                  reportForm.rating
+                    ? `${reportForm.rating} star${reportForm.rating !== 1 ? 's' : ''}`
+                    : 'No rating'
+                }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Issue Category (Only for reports) -->
+          <div v-if="reportForm.type === 'report'" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Issue Category</label>
+            <select
+              v-model="reportForm.category"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="">Select issue category</option>
+              <option value="driver_behavior">Driver Behavior</option>
+              <option value="vehicle_condition">Vehicle Condition</option>
+              <option value="route_issues">Route Issues</option>
+              <option value="fare_disputes">Fare Disputes</option>
+              <option value="safety_concerns">Safety Concerns</option>
+              <option value="service_quality">Service Quality</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <!-- Subject/Title -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ reportForm.type === 'review' ? 'Review Title' : 'Issue Summary' }}
+            </label>
+            <input
+              v-model="reportForm.subject"
+              type="text"
+              required
+              maxlength="100"
+              :placeholder="
+                reportForm.type === 'review'
+                  ? 'Brief title for your review'
+                  : 'Brief summary of the issue'
+              "
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+            <p class="text-xs text-gray-500 mt-1">{{ reportForm.subject.length }}/100 characters</p>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ reportForm.type === 'review' ? 'Review Details' : 'Detailed Description' }}
+            </label>
+            <textarea
+              v-model="reportForm.description"
+              required
+              rows="4"
+              maxlength="500"
+              :placeholder="
+                reportForm.type === 'review'
+                  ? 'Share your experience with this tricycle service...'
+                  : 'Please provide detailed information about the issue...'
+              "
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ reportForm.description.length }}/500 characters
+            </p>
+          </div>
+
+          <!-- Location (Optional) -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Location (Optional)</label>
+            <input
+              v-model="reportForm.location"
+              type="text"
+              :placeholder="
+                reportForm.type === 'review'
+                  ? 'Where did this experience happen?'
+                  : 'Where did this issue occur?'
+              "
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+
+          <!-- Date/Time (Optional) -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Date & Time (Optional)</label
+            >
+            <input
+              v-model="reportForm.datetime"
+              type="datetime-local"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-3">
+            <button
+              type="button"
+              @click="closeModal"
+              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-lg transition-colors font-medium"
+            >
+              <span v-if="isSubmitting">Submitting...</span>
+              <span v-else>Submit {{ reportForm.type === 'review' ? 'Review' : 'Report' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch, computed } from 'vue'
+import { supabase } from '@/composables/useSupabase'
+
+// Props
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false,
+  },
+  user: {
+    type: Object,
+    default: null,
+  },
+})
+
+// Emits
+const emit = defineEmits(['close', 'submit'])
+
+// Reactive state
+const showModal = ref(props.show)
+const isSubmitting = ref(false)
+
+// Alert state
+const alert = ref({
+  show: false,
+  type: 'info', // 'success', 'error', 'info'
+  message: '',
+})
+
+// Form data
+const reportForm = ref({
+  type: 'review',
+  zone: '',
+  bodyNumber: '',
+  rating: 0,
+  category: '',
+  subject: '',
+  description: '',
+  location: '',
+  datetime: '',
+})
+
+// Computed properties
+const alertClasses = computed(() => {
+  const baseClasses = 'border-l-4'
+  switch (alert.value.type) {
+    case 'success':
+      return `${baseClasses} border-green-500 bg-green-50`
+    case 'error':
+      return `${baseClasses} border-red-500 bg-red-50`
+    default:
+      return `${baseClasses} border-blue-500 bg-blue-50`
+  }
+})
+
+// Watch for prop changes
+watch(
+  () => props.show,
+  (newVal) => {
+    showModal.value = newVal
+    if (newVal) {
+      resetForm()
+      hideAlert()
+    }
+  },
+)
+
+// Alert methods
+const showAlert = (type, message, duration = 5000) => {
+  alert.value = {
+    show: true,
+    type,
+    message,
+  }
+
+  // Auto hide after duration
+  if (duration > 0) {
+    setTimeout(() => {
+      hideAlert()
+    }, duration)
+  }
+}
+
+const hideAlert = () => {
+  alert.value.show = false
+}
+
+// Methods
+const closeModal = () => {
+  showModal.value = false
+  hideAlert()
+  emit('close')
+}
+
+const setRating = (stars) => {
+  reportForm.value.rating = stars
+}
+
+const resetForm = () => {
+  reportForm.value = {
+    type: 'review',
+    zone: '',
+    bodyNumber: '',
+    rating: 0,
+    category: '',
+    subject: '',
+    description: '',
+    location: '',
+    datetime: '',
+  }
+}
+
+const submitReport = async () => {
+  if (!props.user?.isLoggedIn?.()) {
+    showAlert('error', 'Please login to submit a review or report')
+    return
+  }
+
+  isSubmitting.value = true
+  hideAlert()
+
+  try {
+    const submissionData = {
+      user_id: props.user.currentUser().id,
+      zone: reportForm.value.zone,
+      subject: reportForm.value.subject,
+      description: reportForm.value.description,
+      location: reportForm.value.location || null,
+      datetime: reportForm.value.datetime || null,
+      created_at: new Date().toISOString(),
+    }
+
+    console.log('Submitting report:', submissionData)
+
+    if (reportForm.value.type === 'review') {
+      // Insert into reviews table
+      const { data, error } = await supabase
+        .from('reviews')
+        .insert([
+          {
+            ...submissionData,
+            rating: reportForm.value.rating,
+          },
+        ])
+        .select()
+
+      if (error) throw error
+    } else {
+      // Insert into reports table
+      if (!reportForm.value.bodyNumber) {
+        throw new Error('Body number is required for reports')
+      }
+
+      const { data, error } = await supabase
+        .from('reports')
+        .insert([
+          {
+            ...submissionData,
+            body_number: reportForm.value.bodyNumber,
+            category: reportForm.value.category,
+            status: 'pending', // Default status for new reports
+          },
+        ])
+        .select()
+
+      if (error) throw error
+    }
+
+    // Show success message
+    showAlert(
+      'success',
+      `${reportForm.value.type === 'review' ? 'Review' : 'Report'} submitted successfully! Thank you for your feedback.`,
+      4000,
+    )
+
+    // Close modal after a short delay to allow user to see success message
+    setTimeout(() => {
+      emit('submit')
+      closeModal()
+    }, 2000)
+  } catch (error) {
+    console.error('Submission failed:', error)
+    showAlert('error', `Failed to submit: ${error.message}`)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+</script>
