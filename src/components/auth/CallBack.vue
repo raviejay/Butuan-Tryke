@@ -17,74 +17,55 @@ import { supabase } from '@/composables/useSupabase'
 onMounted(async () => {
   try {
     console.log('Auth callback page loaded')
-    console.log('Current URL:', window.location.href)
 
-    // Handle the OAuth callback with the URL hash/search params
-    const { data, error } = await supabase.auth.getSession()
+    // Handle the OAuth callback - check both hash and query parameters
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const queryParams = new URLSearchParams(window.location.search)
 
-    console.log('Session data:', data)
-    console.log('Session error:', error)
+    // Check if we have token in hash (common for OAuth)
+    if (window.location.hash.includes('access_token')) {
+      console.log('OAuth response found in hash fragment')
 
-    if (error) {
-      console.error('Auth callback error:', error)
-      // Redirect to home with error
-      setTimeout(() => {
+      // Supabase should automatically handle this, but let's trigger a session refresh
+      const { error } = await supabase.auth.getSession()
+
+      if (error) {
+        console.error('Error getting session:', error)
         window.location.href = '/?error=auth_failed'
-      }, 2000)
+        return
+      }
+
+      // Redirect to home after successful auth
+      window.location.href = '/'
       return
     }
 
-    if (data.session) {
-      console.log('Session found, redirecting to home')
-      // Successfully authenticated, redirect to home
-      setTimeout(() => {
-        window.location.href = '/'
-      }, 1000)
-    } else {
-      console.log('No session found, checking for auth code in URL')
+    // Check for auth code in query parameters (alternative flow)
+    const authCode = queryParams.get('code')
+    if (authCode) {
+      console.log('Auth code found, exchanging for session')
+      const { data, error } = await supabase.auth.exchangeCodeForSession(authCode)
 
-      // Check if there's an auth code in the URL
-      const urlParams = new URLSearchParams(window.location.search)
-      const authCode = urlParams.get('code')
-
-      if (authCode) {
-        console.log('Auth code found, exchanging for session')
-        // Exchange the auth code for a session
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.exchangeCodeForSession(authCode)
-
-        if (sessionError) {
-          console.error('Code exchange error:', sessionError)
-          setTimeout(() => {
-            window.location.href = '/?error=auth_failed'
-          }, 2000)
-          return
-        }
-
-        if (sessionData.session) {
-          console.log('Session created successfully')
-          setTimeout(() => {
-            window.location.href = '/'
-          }, 1000)
-        } else {
-          console.log('No session created')
-          setTimeout(() => {
-            window.location.href = '/'
-          }, 2000)
-        }
-      } else {
-        console.log('No auth code found, redirecting to home')
-        // No session and no code, redirect to home
-        setTimeout(() => {
-          window.location.href = '/'
-        }, 2000)
+      if (error) {
+        console.error('Code exchange error:', error)
+        window.location.href = '/?error=auth_failed'
+        return
       }
+
+      window.location.href = '/'
+      return
+    }
+
+    // If no auth data found, check existing session
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData.session) {
+      window.location.href = '/'
+    } else {
+      window.location.href = '/?error=no_auth_data'
     }
   } catch (error) {
     console.error('Auth callback error:', error)
-    setTimeout(() => {
-      window.location.href = '/?error=auth_failed'
-    }, 2000)
+    window.location.href = '/?error=auth_failed'
   }
 })
 </script>
