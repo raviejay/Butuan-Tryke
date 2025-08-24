@@ -1,10 +1,65 @@
 <template>
   <div class="relative">
+    <!-- Alert Notifications -->
+    <div
+      v-if="alert.show"
+      :class="[
+        'fixed top-4 right-4 z-[60] px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 transition-all duration-300 ease-in-out transform',
+        alert.type === 'success'
+          ? 'bg-green-100 border border-green-200 text-green-800'
+          : 'bg-red-100 border border-red-200 text-red-800',
+        alert.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0',
+      ]"
+    >
+      <!-- Success Icon -->
+      <svg
+        v-if="alert.type === 'success'"
+        class="w-5 h-5 text-green-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <!-- Error Icon -->
+      <svg
+        v-else
+        class="w-5 h-5 text-red-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <span class="text-sm font-medium">{{ alert.message }}</span>
+      <button @click="hideAlert" class="ml-2 text-gray-400 hover:text-gray-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+    </div>
+
     <!-- User Profile Circle -->
     <button
       @click="toggleDropdown"
-      class="w-10 h-10 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center shadow-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+      class="w-10 h-10 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center shadow-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 overflow-hidden"
     >
+      <!-- Not logged in - show icon -->
       <svg v-if="!isLoggedIn" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
@@ -13,6 +68,15 @@
           d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
         />
       </svg>
+      <!-- Logged in with profile picture -->
+      <img
+        v-else-if="userProfilePicture"
+        :src="userProfilePicture"
+        :alt="currentUser?.user_metadata?.full_name || 'User'"
+        class="w-full h-full object-cover rounded-full"
+        @error="handleImageError"
+      />
+      <!-- Logged in without profile picture - show initials -->
       <span v-else class="text-sm font-bold">{{ userInitials }}</span>
     </button>
 
@@ -334,6 +398,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { supabase } from '@/composables/useSupabase'
 import AdminDashboard from '@/components/admin/Dashboard.vue'
+
 // Props
 const props = defineProps({
   modelValue: {
@@ -355,6 +420,14 @@ const currentUser = ref(null)
 const userRole = ref('')
 const errorMessage = ref('')
 const showDashboard = ref(false)
+const userProfilePicture = ref(null)
+
+// Alert state
+const alert = ref({
+  show: false,
+  type: 'success', // 'success' or 'error'
+  message: '',
+})
 
 // Form data
 const loginForm = ref({
@@ -386,9 +459,45 @@ const isAdmin = computed(() => {
   return userRole.value === 'admin'
 })
 
+// Alert methods
+const showAlert = (type, message, duration = 4000) => {
+  alert.value = {
+    show: true,
+    type,
+    message,
+  }
+
+  // Auto hide after duration
+  setTimeout(() => {
+    hideAlert()
+  }, duration)
+}
+
+const hideAlert = () => {
+  alert.value.show = false
+}
+
 // Methods
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
+}
+
+// Handle profile picture error (fallback to initials)
+const handleImageError = () => {
+  userProfilePicture.value = null
+}
+
+// Get user profile picture from user metadata
+const getUserProfilePicture = (user) => {
+  if (!user) return null
+
+  // Check for avatar URL in user metadata (Google OAuth provides this)
+  return (
+    user.user_metadata?.avatar_url ||
+    user.user_metadata?.picture ||
+    user.identities?.[0]?.identity_data?.avatar_url ||
+    null
+  )
 }
 
 const openLoginModal = () => {
@@ -469,8 +578,14 @@ const handleLogin = async () => {
 
     currentUser.value = data.user
     isLoggedIn.value = true
+    userProfilePicture.value = getUserProfilePicture(data.user)
     await fetchUserRole(data.user.id)
     closeLoginModal()
+
+    // Show success alert
+    const userName = data.user.user_metadata?.full_name || data.user.email
+    showAlert('success', `Welcome back, ${userName}!`)
+
     emit('login', data.user)
   } catch (error) {
     console.error('Login failed:', error)
@@ -507,11 +622,17 @@ const handleSignup = async () => {
       if (data.user.email_confirmed_at) {
         currentUser.value = data.user
         isLoggedIn.value = true
+        userProfilePicture.value = getUserProfilePicture(data.user)
         await fetchUserRole(data.user.id)
         closeSignupModal()
+
+        // Show success alert
+        showAlert('success', `Welcome to our platform, ${signupForm.value.name}!`)
+
         emit('login', data.user)
       } else {
         errorMessage.value = 'Please check your email to confirm your account.'
+        showAlert('success', 'Account created! Please check your email to verify your account.')
       }
     }
   } catch (error) {
@@ -527,7 +648,7 @@ const signInWithGoogle = async () => {
   errorMessage.value = ''
 
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -535,6 +656,7 @@ const signInWithGoogle = async () => {
           access_type: 'offline',
           prompt: 'consent',
         },
+
       },
     })
 
@@ -548,21 +670,29 @@ const signInWithGoogle = async () => {
 
 const logout = async () => {
   try {
+    const userName =
+      currentUser.value?.user_metadata?.full_name || currentUser.value?.email || 'User'
+
     const { error } = await supabase.auth.signOut()
     if (error) throw error
 
     currentUser.value = null
     isLoggedIn.value = false
     userRole.value = ''
+    userProfilePicture.value = null
     showDropdown.value = false
+
+    // Show logout alert
+    showAlert('success', `Goodbye, ${userName}! You've been logged out.`)
+
     emit('logout')
   } catch (error) {
     console.error('Logout failed:', error)
+    showAlert('error', 'Logout failed. Please try again.')
   }
 }
 
 // Admin action handlers
-
 const handleDashboard = () => {
   showDropdown.value = false
   showDashboard.value = true
@@ -589,6 +719,7 @@ onMounted(async () => {
   if (session) {
     currentUser.value = session.user
     isLoggedIn.value = true
+    userProfilePicture.value = getUserProfilePicture(session.user)
     await fetchUserRole(session.user.id)
   }
 
@@ -597,14 +728,21 @@ onMounted(async () => {
     if (event === 'SIGNED_IN' && session) {
       currentUser.value = session.user
       isLoggedIn.value = true
+      userProfilePicture.value = getUserProfilePicture(session.user)
       await fetchUserRole(session.user.id)
       closeLoginModal()
       closeSignupModal()
+
+      // Show welcome alert for new sessions (not initial load)
+      const userName = session.user.user_metadata?.full_name || session.user.email
+      showAlert('success', `Welcome back, ${userName}!`)
+
       emit('login', session.user)
     } else if (event === 'SIGNED_OUT') {
       currentUser.value = null
       isLoggedIn.value = false
       userRole.value = ''
+      userProfilePicture.value = null
       emit('logout')
     }
   })
@@ -623,5 +761,6 @@ defineExpose({
   userRole: () => userRole.value,
   isAdmin: () => isAdmin.value,
   openLoginModal: () => openLoginModal(),
+  showAlert: (type, message, duration) => showAlert(type, message, duration),
 })
 </script>

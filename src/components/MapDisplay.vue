@@ -15,7 +15,7 @@
         <p class="text-xs text-gray-500">Multi-Zone Routes</p>
       </div>
 
-      <!-- Loading Status -->
+      <!-- Loading Status sa mga routes debugging purposes -->
       <div class="bg-white rounded-lg shadow-lg p-3">
         <label class="block text-xs font-medium text-gray-700 mb-1">Zone Status</label>
         <div v-if="isLoading" class="flex items-center text-xs text-orange-600">
@@ -143,7 +143,7 @@ const addMarker = (coords, isStart) => {
 
 // Draw route on map
 const drawRoute = (routeData) => {
-  // Remove existing route if any
+  // Remove existing route if naa na to draw another
   if (routePolyline.value) {
     map.value.removeLayer(routePolyline.value)
   }
@@ -154,7 +154,7 @@ const drawRoute = (routeData) => {
 
   routePolyline.value = L.polyline(routeData.coordinates, style).addTo(map.value)
 
-  // Fit map to show the entire route
+  // Clip nato ang map para sa butuan lang dili kaayo mak zoom out
   const bounds = L.latLngBounds(routeData.coordinates)
   map.value.fitBounds(bounds.pad(0.1))
 }
@@ -294,7 +294,6 @@ onMounted(() => {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map.value)
 
-  // Add route layers if already loaded
   if (props.loadedRoutes.length > 0) {
     addRouteLayersToMap()
   }
@@ -302,7 +301,7 @@ onMounted(() => {
   // Add click handler to map
   map.value.on('click', handleMapClick)
 
-  // Handle zoom events
+  // paras zoom para mo stick ang marker
   map.value.on('zoomend', () => {
     if (startMarker.value) startMarker.value.update()
     if (destinationMarker.value) destinationMarker.value.update()

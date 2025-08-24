@@ -893,6 +893,7 @@ watch(
 )
 </script>
 
+
 <style scoped>
 /* Custom color palette */
 .text-custom-green {
@@ -920,3 +921,4 @@ watch(
   background-color: #f59e0b;
 }
 </style>
+
