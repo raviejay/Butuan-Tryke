@@ -32,6 +32,92 @@
           </button>
         </div>
 
+        <!-- Alert Notifications -->
+        <div v-if="alerts.length > 0" class="px-4 md:px-6 pt-4">
+          <div
+            v-for="alert in alerts"
+            :key="alert.id"
+            :class="[
+              'p-4 rounded-lg border-l-4 shadow-sm mb-3 flex items-start justify-between',
+              alert.type === 'success' ? 'bg-green-50 border-green-400 text-green-700' : '',
+              alert.type === 'error' ? 'bg-red-50 border-red-400 text-red-700' : '',
+              alert.type === 'warning' ? 'bg-yellow-50 border-yellow-400 text-yellow-700' : '',
+              alert.type === 'info' ? 'bg-blue-50 border-blue-400 text-blue-700' : '',
+            ]"
+          >
+            <div class="flex items-start">
+              <!-- Icon -->
+              <div class="flex-shrink-0 mr-3">
+                <!-- Success Icon -->
+                <svg
+                  v-if="alert.type === 'success'"
+                  class="w-5 h-5 text-green-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <!-- Error Icon -->
+                <svg
+                  v-else-if="alert.type === 'error'"
+                  class="w-5 h-5 text-red-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <!-- Warning Icon -->
+                <svg
+                  v-else-if="alert.type === 'warning'"
+                  class="w-5 h-5 text-yellow-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <!-- Info Icon -->
+                <svg v-else class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+              <!-- Message -->
+              <div>
+                <p class="text-sm font-medium">{{ alert.title }}</p>
+                <p v-if="alert.message" class="text-sm mt-1">{{ alert.message }}</p>
+              </div>
+            </div>
+            <!-- Close Button -->
+            <button
+              @click="removeAlert(alert.id)"
+              class="flex-shrink-0 ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
         <!-- Content -->
         <div class="flex-1 p-4 md:p-6 overflow-y-auto">
           <div v-if="loading" class="flex justify-center items-center h-64">
@@ -89,12 +175,59 @@
       @close="closeModal"
       @save="saveChanges"
     />
+
+    <!-- Custom Confirmation Dialog -->
+    <div
+      v-if="confirmDialog.show"
+      class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <div
+              class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4"
+            >
+              <svg
+                class="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900">{{ confirmDialog.title }}</h3>
+          </div>
+          <p class="text-sm text-gray-500 mb-6">{{ confirmDialog.message }}</p>
+          <div class="flex justify-end space-x-3">
+            <button
+              @click="handleConfirmCancel"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleConfirmAccept"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { supabase } from '@/composables/useSupabase'
+import { supabaseAdmin } from '@/composables/useSupabaseAdmin'
 import AdminSidebar from './AdminSidebar.vue'
 import DashboardOverview from './DashboardOverview.vue'
 import ManageUsers from './ManageUsers.vue'
@@ -102,6 +235,7 @@ import ManageReviews from './ManageReviews.vue'
 import ManageReports from './ManageReports.vue'
 import AdminModal from './AdminModal.vue'
 import ManageRouteZones from './ManageRouteZones.vue'
+
 // Props
 const props = defineProps({
   currentUser: {
@@ -126,8 +260,70 @@ const formData = ref({})
 const sidebarCollapsed = ref(false)
 const screenWidth = ref(window.innerWidth)
 
+// Alert system
+const alerts = ref([])
+const alertIdCounter = ref(0)
+
+// Confirmation dialog
+const confirmDialog = ref({
+  show: false,
+  title: '',
+  message: '',
+  resolve: null,
+})
+
 // Computed
 const isMobile = computed(() => screenWidth.value < 768)
+
+// Alert Methods
+const showAlert = (type, title, message = null, duration = 4000) => {
+  const alert = {
+    id: alertIdCounter.value++,
+    type,
+    title,
+    message,
+    timestamp: Date.now(),
+  }
+
+  alerts.value.push(alert)
+
+  // Auto-remove alert after duration
+  if (duration > 0) {
+    setTimeout(() => {
+      removeAlert(alert.id)
+    }, duration)
+  }
+}
+
+const removeAlert = (alertId) => {
+  const index = alerts.value.findIndex((alert) => alert.id === alertId)
+  if (index > -1) {
+    alerts.value.splice(index, 1)
+  }
+}
+
+// Custom confirm dialog
+const customConfirm = (title, message) => {
+  return new Promise((resolve) => {
+    confirmDialog.value = {
+      show: true,
+      title,
+      message,
+      resolve,
+    }
+  })
+}
+
+// Confirmation dialog handlers
+const handleConfirmCancel = () => {
+  confirmDialog.value.resolve(false)
+  confirmDialog.value.show = false
+}
+
+const handleConfirmAccept = () => {
+  confirmDialog.value.resolve(true)
+  confirmDialog.value.show = false
+}
 
 // Methods
 const updateScreenWidth = () => {
@@ -137,6 +333,7 @@ const updateScreenWidth = () => {
   }
 }
 
+console.log(props.currentUser)
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value
 }
@@ -176,9 +373,14 @@ const loadData = async () => {
           role: profile.role || 'user',
           created_at: profile.created_at,
         }))
+
+        if (profilesData.length > 0) {
+          showAlert('success', 'Data loaded successfully', 'User profiles have been loaded')
+        }
       }
     } else if (usersData) {
       users.value = usersData
+      showAlert('success', 'Data loaded successfully', 'All user data has been loaded')
     }
 
     // Load Reviews
@@ -202,6 +404,8 @@ const loadData = async () => {
     }
   } catch (error) {
     console.error('Error loading data:', error)
+    showAlert('warning', 'Using demo data', 'Could not connect to database, showing sample data')
+
     // Provide more realistic fallback data for development
     users.value = [
       {
@@ -303,7 +507,7 @@ const saveChanges = async (data) => {
     await loadData() // Refresh data
   } catch (error) {
     console.error('Error saving changes:', error)
-    alert('Error saving changes. Please try again.')
+    showAlert('error', 'Save failed', 'There was an error saving your changes. Please try again.')
   }
 }
 
@@ -311,9 +515,10 @@ const handleUserAction = async (action, userId, data) => {
   try {
     if (action === 'create') {
       // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: data.email,
         password: data.password,
+        email_confirm: true,
         user_metadata: {
           full_name: data.full_name,
         },
@@ -323,7 +528,7 @@ const handleUserAction = async (action, userId, data) => {
 
       // Create profile with role
       if (authData.user) {
-        const { error: profileError } = await supabase.from('profiles').insert([
+        const { error: profileError } = await supabase.from('profiles').upsert([
           {
             id: authData.user.id,
             role: data.role,
@@ -331,40 +536,58 @@ const handleUserAction = async (action, userId, data) => {
         ])
 
         if (profileError) throw profileError
+        showAlert('success', 'User created', `Successfully created user: ${data.full_name}`)
       }
     } else if (action === 'update') {
       // Update user role in profiles table
       const { error } = await supabase.from('profiles').update({ role: data.role }).eq('id', userId)
 
       if (error) throw error
+      showAlert('success', 'User updated', 'User role has been successfully updated')
     } else if (action === 'delete') {
-      if (confirm('Are you sure you want to delete this user?')) {
-        // Delete user profile
-        const { error } = await supabase.from('profiles').delete().eq('id', userId)
+      const confirmed = await customConfirm(
+        'Delete User',
+        'Are you sure you want to delete this user? This action cannot be undone.',
+      )
 
+      if (confirmed) {
+        // Delete user profile
+        const { error } = await supabaseAdmin.from('profiles').delete().eq('id', userId)
         if (error) throw error
+
+        // Delete user from Auth
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        if (authError) throw authError
+
+        showAlert('success', 'User deleted', 'User has been successfully deleted')
         await loadData()
       }
     }
   } catch (error) {
     console.error(`Error ${action} user:`, error)
-    alert(`Error ${action} user: ${error.message}`)
+    showAlert('error', `Failed to ${action} user`, error.message)
   }
 }
 
 const handleReviewAction = async (action, reviewId) => {
   try {
     if (action === 'delete') {
-      if (confirm('Are you sure you want to delete this review?')) {
+      const confirmed = await customConfirm(
+        'Delete Review',
+        'Are you sure you want to delete this review? This action cannot be undone.',
+      )
+
+      if (confirmed) {
         const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
 
         if (error) throw error
+        showAlert('success', 'Review deleted', 'Review has been successfully deleted')
         await loadData()
       }
     }
   } catch (error) {
     console.error(`Error ${action} review:`, error)
-    alert(`Error ${action} review: ${error.message}`)
+    showAlert('error', `Failed to ${action} review`, error.message)
   }
 }
 
@@ -380,19 +603,17 @@ const handleReportAction = async (action, reportId, data) => {
         .eq('id', reportId)
 
       if (error) throw error
+      showAlert('success', 'Report updated', 'Report status has been successfully updated')
     }
   } catch (error) {
     console.error(`Error ${action} report:`, error)
-    alert(`Error ${action} report: ${error.message}`)
+    showAlert('error', `Failed to ${action} report`, error.message)
   }
 }
 
 const handleZoneUpdated = (zoneType) => {
   console.log(`Zone ${zoneType} was updated`)
-  // You can add any additional logic here, such as:
-  // - Refreshing other data that depends on route zones
-  // - Showing a success notification
-  // - Updating the map if you have one
+  showAlert('success', 'Zone updated', `Route zone ${zoneType} has been successfully updated`)
 }
 
 // Lifecycle hooks

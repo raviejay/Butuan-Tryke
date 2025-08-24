@@ -31,8 +31,11 @@
       >
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center space-x-2">
-            <div :class="getZoneColorClass(zone.zone_type)" class="w-4 h-4 rounded-full"></div>
-            <h3 class="font-medium text-gray-800 capitalize">{{ zone.zone_type }} Zone</h3>
+            <div
+              :style="{ backgroundColor: getZoneColor(zone.zone_type) }"
+              class="w-4 h-4 rounded-full border border-gray-300"
+            ></div>
+            <h3 class="font-medium text-gray-800 capitalize">{{ getZoneName(zone.zone_type) }}</h3>
           </div>
           <div class="flex items-center space-x-1">
             <button
@@ -128,7 +131,7 @@
       @click="closeUploadModal"
     >
       <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black bg-opacity-25"></div>
+        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
         <div class="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md" @click.stop>
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">
@@ -147,32 +150,68 @@
           </div>
 
           <form @submit.prevent="handleUpload" class="space-y-4">
-            <!-- Zone Type Selection -->
+            <!-- Zone Type Selection/Input -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Zone Color</label>
-              <div class="grid grid-cols-2 gap-2">
-                <label
-                  v-for="zoneType in zoneTypes"
-                  :key="zoneType"
-                  class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50"
-                  :class="
-                    selectedZoneType === zoneType
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200'
-                  "
-                >
-                  <input
-                    type="radio"
-                    :value="zoneType"
-                    v-model="selectedZoneType"
-                    class="text-orange-600"
-                    :disabled="isUpdating"
-                  />
-                  <div :class="getZoneColorClass(zoneType)" class="w-3 h-3 rounded-full"></div>
-                  <span class="text-sm capitalize">{{ zoneType }}</span>
-                </label>
+
+              <!-- Existing Zones -->
+              <div v-if="availableZoneTypes.length > 0" class="mb-3">
+                <p class="text-xs text-gray-600 mb-2">Existing zones:</p>
+                <div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  <label
+                    v-for="zoneType in availableZoneTypes"
+                    :key="zoneType"
+                    class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50"
+                    :class="
+                      selectedZoneType === zoneType
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200'
+                    "
+                  >
+                    <input
+                      type="radio"
+                      :value="zoneType"
+                      v-model="selectedZoneType"
+                      @change="customZoneInput = ''"
+                      class="text-orange-600"
+                      :disabled="isUpdating"
+                    />
+                    <div
+                      :style="{ backgroundColor: getZoneColor(zoneType) }"
+                      class="w-3 h-3 rounded-full border border-gray-300"
+                    ></div>
+                    <span class="text-sm capitalize truncate">{{ getZoneName(zoneType) }}</span>
+                  </label>
+                </div>
               </div>
-              <p v-if="isUpdating" class="text-xs text-gray-500 mt-1">
+
+              <!-- Custom Zone Input -->
+              <div v-if="!isUpdating">
+                <p class="text-xs text-gray-600 mb-2">Or create new zone:</p>
+                <div class="flex space-x-2">
+                  <input
+                    type="text"
+                    v-model="customZoneInput"
+                    @input="handleCustomZoneInput"
+                    placeholder="Enter color (e.g., blue, #ff5733)"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                  <div
+                    v-if="customZoneInput && isValidColor(customZoneInput)"
+                    :style="{ backgroundColor: getDisplayColor(customZoneInput) }"
+                    class="w-10 h-10 rounded border border-gray-300 flex-shrink-0"
+                    :title="customZoneInput"
+                  ></div>
+                </div>
+                <p
+                  v-if="customZoneInput && !isValidColor(customZoneInput)"
+                  class="text-xs text-red-500 mt-1"
+                >
+                  Please enter a valid color (hex code, color name, or rgb)
+                </p>
+              </div>
+
+              <p v-if="isUpdating" class="text-xs text-gray-500 mt-2">
                 Zone type cannot be changed during update
               </p>
             </div>
@@ -245,6 +284,7 @@
                 type="button"
                 @click="previewOnMap"
                 class="mt-2 w-full px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 transition-colors"
+                :disabled="!getEffectiveZoneType()"
               >
                 Preview on Map
               </button>
@@ -261,7 +301,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="!selectedZoneType || (!selectedFile && !isUpdating) || uploading"
+                :disabled="!getEffectiveZoneType() || (!selectedFile && !isUpdating) || uploading"
                 class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {{
@@ -283,14 +323,20 @@
     <!-- Map Preview Modal -->
     <div v-if="showMapModal" class="fixed inset-0 z-50 overflow-y-auto" @click="closeMapModal">
       <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black bg-opacity-25"></div>
+        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
+
         <div class="relative bg-white rounded-lg shadow-xl w-full max-w-4xl h-96" @click.stop>
           <div class="flex items-center justify-between p-4 border-b">
             <div class="flex items-center space-x-3">
               <h3 class="text-lg font-semibold text-gray-800">Route Preview</h3>
               <div v-if="previewZoneType" class="flex items-center space-x-2">
-                <div :class="getZoneColorClass(previewZoneType)" class="w-4 h-4 rounded-full"></div>
-                <span class="text-sm text-gray-600 capitalize">{{ previewZoneType }} Zone</span>
+                <div
+                  :style="{ backgroundColor: getDisplayColor(previewZoneType) }"
+                  class="w-4 h-4 rounded-full border border-gray-300"
+                ></div>
+                <span class="text-sm text-gray-600 capitalize">{{
+                  getZoneName(previewZoneType)
+                }}</span>
               </div>
             </div>
 
@@ -303,12 +349,12 @@
                 class="text-sm border rounded px-2 py-1"
               >
                 <option
-                  v-for="zoneType in zoneTypes"
+                  v-for="zoneType in availableZoneTypes"
                   :key="zoneType"
                   :value="zoneType"
                   class="capitalize"
                 >
-                  {{ zoneType }}
+                  {{ getZoneName(zoneType) }}
                 </option>
               </select>
               <button
@@ -353,14 +399,14 @@
       @click="showViewModal = false"
     >
       <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black bg-opacity-25"></div>
+        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm"></div>
         <div
           class="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-96 overflow-y-auto"
           @click.stop
         >
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">
-              <span class="capitalize">{{ selectedZone?.zone_type }}</span> Zone Details
+              <span class="capitalize">{{ getZoneName(selectedZone?.zone_type) }}</span> Details
             </h3>
             <button @click="showViewModal = false" class="text-gray-400 hover:text-gray-600">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,10 +426,10 @@
                 <span class="font-medium text-gray-700">Zone Type:</span>
                 <div class="flex items-center space-x-2 mt-1">
                   <div
-                    :class="getZoneColorClass(selectedZone.zone_type)"
-                    class="w-3 h-3 rounded-full"
+                    :style="{ backgroundColor: getZoneColor(selectedZone.zone_type) }"
+                    class="w-3 h-3 rounded-full border border-gray-300"
                   ></div>
-                  <span class="capitalize">{{ selectedZone.zone_type }}</span>
+                  <span class="capitalize">{{ getZoneName(selectedZone.zone_type) }}</span>
                 </div>
               </div>
               <div>
@@ -417,7 +463,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { supabase } from '@/composables/useSupabase'
 
 // Props
@@ -432,6 +478,7 @@ const showUploadModal = ref(false)
 const showViewModal = ref(false)
 const showMapModal = ref(false)
 const selectedZoneType = ref('')
+const customZoneInput = ref('')
 const selectedFile = ref(null)
 const filePreview = ref(null)
 const uploading = ref(false)
@@ -443,29 +490,71 @@ const previewZoneType = ref('orange')
 const isPreviewMode = ref(false)
 let previewMap = null
 
-const zoneTypes = ['orange', 'red', 'white', 'green', 'black']
+// Computed properties
+const availableZoneTypes = computed(() => {
+  return [
+    ...new Set(routeZones.value.filter((zone) => zone.geojson_data).map((zone) => zone.zone_type)),
+  ]
+})
 
 // Methods
-const getZoneColorClass = (zoneType) => {
-  const colorMap = {
-    orange: 'bg-orange-500',
-    red: 'bg-red-500',
-    white: 'bg-gray-800',
-    green: 'bg-green-500',
-    black: 'bg-gray-900',
+const getZoneColor = (zoneType) => {
+  // Handle white color visibility
+  if (
+    zoneType.toLowerCase() === 'white' ||
+    zoneType.toLowerCase() === '#ffffff' ||
+    zoneType.toLowerCase() === '#fff'
+  ) {
+    return '#000000'
   }
-  return colorMap[zoneType] || 'bg-gray-400'
+
+  // If it's already a valid color, return it
+  if (isValidColor(zoneType)) {
+    return zoneType
+  }
+
+  // Default fallback
+  return '#ea580c'
 }
 
-const getZoneColor = (zoneType) => {
-  const colorMap = {
-    orange: '#f97316',
-    red: '#ef4444',
-    white: '#1f2937',
-    green: '#22c55e',
-    black: '#111827',
+const getDisplayColor = (zoneType) => {
+  return getZoneColor(zoneType)
+}
+
+const getZoneName = (zoneType) => {
+  if (!zoneType) return 'Unknown Zone'
+
+  // If it's a hex color, create a readable name
+  if (zoneType.startsWith('#')) {
+    return `${zoneType} Zone`
   }
-  return colorMap[zoneType] || '#6b7280'
+
+  return `${zoneType.charAt(0).toUpperCase() + zoneType.slice(1)} Zone`
+}
+
+const isValidColor = (color) => {
+  if (!color) return false
+
+  // Check if it's a hex color
+  if (/^#[0-9A-F]{6}$/i.test(color) || /^#[0-9A-F]{3}$/i.test(color)) return true
+
+  // Check if it's a named color or rgb/rgba
+  const style = new Option().style
+  style.color = color
+  return style.color !== ''
+}
+
+const getEffectiveZoneType = () => {
+  if (customZoneInput.value && isValidColor(customZoneInput.value)) {
+    return customZoneInput.value
+  }
+  return selectedZoneType.value
+}
+
+const handleCustomZoneInput = () => {
+  if (customZoneInput.value && isValidColor(customZoneInput.value)) {
+    selectedZoneType.value = ''
+  }
 }
 
 const formatDate = (dateString) => {
@@ -485,36 +574,14 @@ const loadRouteZones = async () => {
 
     if (error) throw error
 
-    // Create a map of existing zones
-    const existingZones = {}
-    data?.forEach((zone) => {
-      existingZones[zone.zone_type] = {
-        ...zone,
-        feature_count: zone.geojson_data?.features?.length || 0,
-      }
-    })
-
-    // Ensure all zone types are represented
-    routeZones.value = zoneTypes.map(
-      (zoneType) =>
-        existingZones[zoneType] || {
-          zone_type: zoneType,
-          geojson_data: null,
-          feature_count: 0,
-          created_at: null,
-          updated_at: null,
-        },
-    )
+    // Use actual data from database
+    routeZones.value = (data || []).map((zone) => ({
+      ...zone,
+      feature_count: zone.geojson_data?.features?.length || 0,
+    }))
   } catch (error) {
     console.error('Error loading route zones:', error)
-    // Fallback data
-    routeZones.value = zoneTypes.map((zoneType) => ({
-      zone_type: zoneType,
-      geojson_data: null,
-      feature_count: 0,
-      created_at: null,
-      updated_at: null,
-    }))
+    routeZones.value = []
   }
 }
 
@@ -531,6 +598,7 @@ const openUploadModal = (zone = null) => {
     selectedZoneType.value = zone?.zone_type || ''
   }
 
+  customZoneInput.value = ''
   selectedFile.value = null
   filePreview.value = null
   showUploadModal.value = true
@@ -539,6 +607,7 @@ const openUploadModal = (zone = null) => {
 const closeUploadModal = () => {
   showUploadModal.value = false
   selectedZoneType.value = ''
+  customZoneInput.value = ''
   selectedFile.value = null
   filePreview.value = null
   isUpdating.value = false
@@ -567,8 +636,10 @@ const handleFileSelect = (event) => {
 }
 
 const handleUpload = async () => {
+  const effectiveZoneType = getEffectiveZoneType()
+
   if (
-    !selectedZoneType.value ||
+    !effectiveZoneType ||
     (!selectedFile.value && !isUpdating.value) ||
     (!filePreview.value && !isUpdating.value)
   )
@@ -584,7 +655,7 @@ const handleUpload = async () => {
 
   try {
     const dataToUpload = {
-      zone_type: selectedZoneType.value,
+      zone_type: effectiveZoneType,
       updated_at: new Date().toISOString(),
     }
 
@@ -600,7 +671,7 @@ const handleUpload = async () => {
     alert(`Route zone ${isUpdating.value ? 'updated' : 'uploaded'} successfully!`)
     closeUploadModal()
     await loadRouteZones()
-    emit('zone-updated', selectedZoneType.value)
+    emit('zone-updated', effectiveZoneType)
   } catch (error) {
     console.error(`Error ${isUpdating.value ? 'updating' : 'uploading'} route zone:`, error)
     alert(`Error ${isUpdating.value ? 'updating' : 'uploading'} route zone. Please try again.`)
@@ -684,8 +755,11 @@ const displayGeoJSONOnMap = (geojsonData, zoneType) => {
 const previewOnMap = async () => {
   if (!filePreview.value) return
 
+  const effectiveZoneType = getEffectiveZoneType()
+  if (!effectiveZoneType) return
+
   mapPreviewData.value = filePreview.value
-  previewZoneType.value = selectedZoneType.value
+  previewZoneType.value = effectiveZoneType
   isPreviewMode.value = true
   showMapModal.value = true
 
@@ -718,7 +792,8 @@ const updatePreviewColor = () => {
 
 const applyPreviewZoneType = () => {
   selectedZoneType.value = previewZoneType.value
-  alert(`Zone type set to ${previewZoneType.value}. You can now upload the zone.`)
+  customZoneInput.value = ''
+  alert(`Zone type set to ${getZoneName(previewZoneType.value)}. You can now upload the zone.`)
   closeMapModal()
 }
 
@@ -743,7 +818,7 @@ const deleteZone = async (zone) => {
     return
   }
 
-  if (!confirm(`Are you sure you want to delete the ${zone.zone_type} zone data?`)) {
+  if (!confirm(`Are you sure you want to delete the ${getZoneName(zone.zone_type)} data?`)) {
     return
   }
 

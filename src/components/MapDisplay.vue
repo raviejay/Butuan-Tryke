@@ -255,7 +255,7 @@ const addRouteLayersToMap = () => {
       const polyline = L.polyline(routePath, {
         color: route.color,
         weight: 3,
-        opacity: 0.7,
+        opacity: 0,
         dashArray: '8, 12',
       })
       routeLayerGroup.value.addLayer(polyline)
