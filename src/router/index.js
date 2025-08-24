@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import AuthCallback from '../views/AuthCallback.vue'
+import CallBack from '@/components/auth/CallBack.vue'
+
 
 const router = createRouter({
   history: createWebHashHistory(), // Use hash history instead of web history
@@ -13,7 +14,7 @@ const router = createRouter({
     {
       path: '/auth/callback',
       name: 'auth-callback',
-      component: AuthCallback,
+      component: CallBack,
     },
   ],
 })
