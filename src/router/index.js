@@ -1,10 +1,9 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router' // Change this
 import HomeView from '../views/HomeView.vue'
 import CallBack from '@/components/auth/CallBack.vue'
 
-
 const router = createRouter({
-  history: createWebHashHistory(), // Use hash history instead of web history
+  history: createWebHistory(), // Change to web history
   routes: [
     {
       path: '/',
@@ -18,5 +17,4 @@ const router = createRouter({
     },
   ],
 })
-
 export default router
