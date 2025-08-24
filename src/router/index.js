@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import CallBack from '@/components/auth/CallBack.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,7 +12,8 @@ const router = createRouter({
     },
     {
       path: '/auth/callback',
-      redirect: '/',
+      name: 'auth-callback',
+      component: CallBack,
     },
   ],
 })
