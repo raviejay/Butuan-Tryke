@@ -6,3 +6,11 @@
   --color-custom-orange: #f97a00;
   --color-custom-cream2: #fed16a;
 }
+
+@layer utilities {
+  .material-fill {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
+

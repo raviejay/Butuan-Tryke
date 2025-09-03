@@ -14,6 +14,7 @@
       <!-- Map Display Component -->
       <MapDisplay
         ref="mapComponent"
+
         :active-field="activeField"
         :route-suggestions="routeSuggestions"
         :loaded-routes="loadedRoutes"
@@ -38,6 +39,7 @@
         @find-route="findTricycleRoute"
         @highlight-route="highlightRoute"
         @clear-suggestions="clearSuggestions"
+        @current-location-selected="handleCurrentLocationSelected"
       />
     </template>
   </div>
@@ -71,6 +73,52 @@ const mapComponent = ref(null)
 
 // Initialize RouteFinder
 const routeFinder = new RouteFinder()
+
+// Handle map style changes from settings
+const handleMapStyleChange = (newStyle) => {
+  if (mapComponent.value) {
+    mapComponent.value.updateMapStyle(newStyle)
+  }
+}
+
+// Handle current location selection
+const handleCurrentLocationSelected = async ({ lat, lng, field }) => {
+  // Immediately update coordinates and show marker for better UX
+  const tempLocationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+
+  if (field === 'start') {
+    start.value = 'Getting current location...'
+    startCoords.value = [lat, lng]
+    mapComponent.value?.addMarker([lat, lng], true)
+    mapComponent.value?.setView([lat, lng], 16)
+  } else if (field === 'destination') {
+    destination.value = 'Getting current location...'
+    destinationCoords.value = [lat, lng]
+    mapComponent.value?.addMarker([lat, lng], false)
+    mapComponent.value?.setView([lat, lng], 16)
+  }
+
+  // Asynchronously get the real address name
+  try {
+    const locationName = await routeFinder.reverseGeocode(lat, lng)
+    
+    if (field === 'start' && startCoords.value && 
+        startCoords.value[0] === lat && startCoords.value[1] === lng) {
+      start.value = locationName || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+    } else if (field === 'destination' && destinationCoords.value && 
+               destinationCoords.value[0] === lat && destinationCoords.value[1] === lng) {
+      destination.value = locationName || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+    }
+  } catch (error) {
+    // Keep the coordinate format if reverse geocoding fails
+    console.log('Reverse geocoding failed, keeping coordinate format')
+    if (field === 'start') {
+      start.value = tempLocationName
+    } else if (field === 'destination') {
+      destination.value = tempLocationName
+    }
+  }
+}
 
 // Handle map click events
 const handleMapClick = async ({ lat, lng, activeField: field }) => {

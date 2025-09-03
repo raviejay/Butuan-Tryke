@@ -116,6 +116,8 @@
           </svg>
           Sign Up
         </button>
+
+        
       </template>
 
       <!-- Logged in options -->
@@ -136,34 +138,32 @@
             @click="handleDashboard"
             class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
           >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+            <span class="material-symbols-outlined w-4 h-4 mr-4">
+              dashboard
+            </span>
             Dashboard
           </button>
-
-          <div class="border-t border-gray-200 my-2"></div>
         </template>
-
+          <button
+          @click="openSettings"
+          class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+        >
+          <span class="material-symbols-outlined w-4 h-4 mr-4">
+            settings
+          </span>
+          Settings
+        </button>
         <button
           @click="logout"
           class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
         >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-            />
-          </svg>
+          <span class="material-symbols-outlined w-4 h-4 mr-4">
+            logout
+          </span>
           Logout
         </button>
+        
+
       </template>
     </div>
 
@@ -205,7 +205,7 @@
                 placeholder="Enter your email"
               />
             </div>
-            <div>
+            <!-- <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input
                 v-model="loginForm.password"
@@ -214,7 +214,7 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="Enter your password"
               />
-            </div>
+            </div> -->
           </div>
 
           <div class="flex items-center mt-4 mb-4">
@@ -391,6 +391,14 @@
       </div>
     </div>
     <AdminDashboard v-if="showDashboard" :currentUser="currentUser" @close="closeDashboard" />
+    <!-- Settings Modal -->
+<Settings
+  v-if="showSettingsModal"
+  :current-user="currentUser"
+  :user-role="userRole"
+  @close="closeSettingsModal"
+  @map-style-changed="handleMapStyleChange"
+/>
   </div>
 </template>
 
@@ -398,8 +406,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { supabase } from '@/composables/useSupabase'
 import AdminDashboard from '@/components/admin/Dashboard.vue'
-
-// Props
+import Settings from '@/components/Settings.vue'
+// Props  
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -421,7 +429,7 @@ const userRole = ref('')
 const errorMessage = ref('')
 const showDashboard = ref(false)
 const userProfilePicture = ref(null)
-
+const showSettingsModal = ref(false)
 // Alert state
 const alert = ref({
   show: false,
@@ -442,6 +450,11 @@ const signupForm = ref({
   confirmPassword: '',
 })
 
+// And add the handleMapStyleChange method
+const handleMapStyleChange = (newStyle) => {
+  // Forward the event to the parent component (HomeView)
+  emit('map-style-change', newStyle)
+}
 // Computed
 const userInitials = computed(() => {
   if (!currentUser.value) return ''
@@ -708,6 +721,15 @@ const handleClickOutside = (event) => {
   if (showDropdown.value && !event.target.closest('.relative')) {
     showDropdown.value = false
   }
+}
+//settins
+const openSettings = () => {
+  showDropdown.value = false
+  showSettingsModal.value = true
+}
+
+const closeSettingsModal = () => {
+  showSettingsModal.value = false
 }
 
 // Check for existing session on mount

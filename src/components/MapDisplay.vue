@@ -4,19 +4,24 @@
     <div id="map" class="w-full h-full z-0"></div>
 
     <!-- Logo -->
-    <div class="absolute top-4 left-4 z-20 w-40 h-24 md:w-40 md:h-24 object-contain">
+    <div class="absolute hidden md:block top-4 left-4 z-20 w-40 h-24 md:w-40 md:h-24 object-contain">
       <img src="@/assets/logo3.png" alt="Butuan Tryke" />
+  
+    </div>
+    <div class="absolute block md:hidden top-4 left-4 z-20 w-18 h-22 md:w-18 md:h-24 object-contain">
+      <img src="@/assets/logo4.png" alt="Butuan Tryke" />
+  
     </div>
 
     <!-- Zone Info -->
-    <div class="absolute top-28 left-4 z-20">
+    <!-- <div class="absolute top-28 left-4 z-20">
       <div class="bg-white rounded-lg shadow-lg px-3 py-2 mb-2">
         <h1 class="text-lg font-bold text-orange-600">Butuan Tryke</h1>
         <p class="text-xs text-gray-500">Multi-Zone Routes</p>
-      </div>
+      </div> -->
 
       <!-- Loading Status sa mga routes debugging purposes -->
-      <div class="bg-white rounded-lg shadow-lg p-3">
+      <!-- <div class="bg-white rounded-lg shadow-lg p-3">
         <label class="block text-xs font-medium text-gray-700 mb-1">Zone Status</label>
         <div v-if="isLoading" class="flex items-center text-xs text-orange-600">
           <div class="loading-spinner mr-2"></div>
@@ -39,26 +44,17 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Active Field Indicator -->
-    <!-- <div class="absolute top-4 right-4 z-20 bg-white rounded-lg shadow-lg px-3 py-2">
-      <div class="text-sm font-medium text-gray-700">
-        Click map for:
-        <span
-          :class="activeField === 'start' ? 'text-green-600' : 'text-red-600'"
-          class="font-bold"
-        >
-          {{ activeField === 'start' ? 'Start' : 'End' }}
-        </span>
-      </div>
     </div> -->
+
+
+    
   </div>
 </template>
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import L from 'leaflet'
+import { useSettingsStore } from '@/stores/settings'
 
 // Props
 const props = defineProps({
@@ -84,8 +80,15 @@ const props = defineProps({
   },
 })
 
+
+
+
 // Emits
 const emit = defineEmits(['map-click', 'routes-loaded'])
+
+// Store
+const settingsStore = useSettingsStore()
+
 
 // Refs
 const map = ref(null)
@@ -94,15 +97,44 @@ const destinationMarker = ref(null)
 const routePolyline = ref(null)
 const highlightedRoutes = ref([])
 const routeLayerGroup = ref(null)
+const currentMapStyle = ref(localStorage.getItem('mapStyle') || 'standard')
+// Create custom location icon function
+const createLocationIcon = (color) => {
+  // decide the icon name based on color
+  const iconName = color === '#ef4444' ? 'location_on' : 'distance';
 
-// Create custom icon function
-const createCustomIcon = (color) => {
   return L.divIcon({
-    className: 'custom-div-icon',
-    html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12],
+    className: 'custom-location-icon',
+    html: `
+      <div style="color: ${color}; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <span class="material-symbols-outlined" 
+              style="font-size: 32px; line-height: 1; font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
+          ${iconName}
+        </span>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  })
+}
+
+
+
+// Create transfer point icon
+const createTransferIcon = (color) => {
+  return L.divIcon({
+    className: 'custom-transfer-icon',
+    html: `
+      <div style="color: ${color}; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <span class="material-symbols-outlined" style="font-size: 28px; line-height: 1;">
+          swap_horiz
+        </span>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
   })
 }
 
@@ -110,7 +142,7 @@ const createCustomIcon = (color) => {
 const safeAddMarker = (coords, color, isStart) => {
   try {
     const marker = L.marker(coords, {
-      icon: createCustomIcon(color),
+      icon: createLocationIcon(color),
       zIndexOffset: 1000,
     }).addTo(map.value)
 
@@ -149,8 +181,8 @@ const drawRoute = (routeData) => {
   }
 
   const style = routeData.fallback
-    ? { color: '#ef4444', weight: 3, opacity: 0.7, dashArray: '10, 10' }
-    : { color: '#3b82f6', weight: 5, opacity: 0.8, smoothFactor: 1 }
+    ? { color: '#ff8800', weight: 3, opacity: 0.7, dashArray: '10, 10' } // Orange for fallback
+    : { color: '#ff8800', weight: 5, opacity: 1, smoothFactor: 1 }     // Green for normal route
 
   routePolyline.value = L.polyline(routeData.coordinates, style).addTo(map.value)
 
@@ -182,7 +214,7 @@ const highlightRoute = (suggestion) => {
     // Add transfer point marker
     if (suggestion.transferPoint) {
       const transferMarker = L.marker(suggestion.transferPoint, {
-        icon: createCustomIcon('#fbbf24'),
+        icon: createTransferIcon('#fbbf24'),
         zIndexOffset: 2000,
       }).addTo(map.value)
       highlightedRoutes.value.push(transferMarker)
@@ -290,9 +322,9 @@ onMounted(() => {
     maxZoom: 18,
   }).setView([8.9495, 125.5436], 14)
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(map.value)
+  updateMapStyle(currentMapStyle.value)
+
+
 
   if (props.loadedRoutes.length > 0) {
     addRouteLayersToMap()
@@ -327,6 +359,80 @@ onBeforeUnmount(() => {
   }
 })
 
+
+const updateMapStyle = (style) => {
+  const maptilerApiKey = "SBAyjg2QZffT0exJjurD" // Replace with your actual API key
+  
+  // Remove existing tile layers
+  map.value.eachLayer((layer) => {
+    if (layer instanceof L.TileLayer) {
+      map.value.removeLayer(layer)
+    }
+  })
+
+  // Add the selected tile layer
+  switch (style) {
+    case "standard":
+      // Default OpenStreetMap style
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(map.value)
+      break
+
+    case "minimal":
+      // MapTiler Positron style
+      L.tileLayer(
+        `https://api.maptiler.com/maps/bright-v2/{z}/{x}/{y}.png?key=${maptilerApiKey}`,
+        {
+          attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+          tileSize: 512,
+          zoomOffset: -1,
+        }
+      ).addTo(map.value)
+      break
+
+    case "satellite":
+      // MapTiler Satellite style
+      L.tileLayer(
+        `https://api.maptiler.com/maps/satellite/{z}/{x}/{y}.jpg?key=${maptilerApiKey}`,
+        {
+          attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+          tileSize: 512,
+          zoomOffset: -1,
+        }
+      ).addTo(map.value)
+      break
+  }
+}
+
+// Add a new function to handle map style changes from settings
+const handleMapStyleChange = (newStyle) => {
+  currentMapStyle.value = newStyle
+  if (map.value) {
+    updateMapStyle(newStyle)
+  }
+}
+
+// Listen for storage events to sync across tabs
+window.addEventListener('storage', (e) => {
+  if (e.key === 'mapStyle') {
+    handleMapStyleChange(e.newValue || 'standard')
+  }
+})
+
+
+
+watch(
+  () => settingsStore.getMapStyle,
+  (newStyle) => {
+    if (map.value) {
+      updateMapStyle(newStyle)
+    }
+  }
+)
+
+
 // Expose methods to parent
 defineExpose({
   addMarker,
@@ -334,21 +440,19 @@ defineExpose({
   highlightRoute,
   clearHighlights,
   setView: (coords, zoom = 16) => map.value?.setView(coords, zoom),
+  updateMapStyle: handleMapStyleChange // Expose this method
 })
 </script>
 
 <style scoped>
-.custom-div-icon {
-  position: relative;
-  text-align: center;
+.custom-location-icon {
+  background: transparent;
+  border: none;
 }
 
-.custom-div-icon div {
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin: 0 auto;
-  transform: translateY(-50%);
+.custom-transfer-icon {
+  background: transparent;
+  border: none;
 }
 
 #map {

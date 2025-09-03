@@ -21,9 +21,12 @@ export class RouteFinder {
       { gasMin: 96.0, gasMax: 105.0, regularFare: 13.0, discountedFare: 11.0 },
     ]
 
-    // Current gas price (this should be updated regularly or fetched from an API)
+    
     this.currentGasPrice = 56.0 // Default to mid-range, should be configurable
 
+
+    this.loadFareData()
+    
     this.butuanPlaces = [
       { name: 'Butuan City Hall', lat: 8.953775339827885, lng: 125.52922189368539 },
       { name: 'Robinsons Place Butuan', lat: 8.943025240692158, lng: 125.52002742041245 },
@@ -46,6 +49,45 @@ export class RouteFinder {
     // Connectivity threshold for connecting route segments (in km)
     this.connectionThreshold = 0.05 // 50 meters
   }
+
+// Load fare data from Supabase
+  async loadFareData() {
+    try {
+      // Load fare matrix
+      const { data: matrixData, error: matrixError } = await supabase
+        .from('fare_matrix')
+        .select('*')
+        .eq('is_active', true)
+        .order('gas_price_min', { ascending: true })
+
+      if (!matrixError && matrixData && matrixData.length > 0) {
+        // Convert Supabase data to RouteFinder format
+        this.fareMatrix = matrixData.map(item => ({
+          gasMin: item.gas_price_min,
+          gasMax: item.gas_price_max,
+          regularFare: item.regular_fare,
+          discountedFare: item.discounted_fare
+        }))
+      }
+
+      // Load current gas price from fare settings
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('fare_settings')
+        .select('setting_value')
+        .eq('setting_name', 'current_gas_price')
+        .single()
+
+      if (!settingsError && settingsData) {
+        this.currentGasPrice = parseFloat(settingsData.setting_value)
+      }
+
+      console.log('Fare data loaded from Supabase successfully')
+    } catch (error) {
+      console.warn('Failed to load fare data from Supabase, using fallback data:', error)
+      // Keep the fallback data already initialized
+    }
+  }
+
 
   // Set current gas price (should be called when gas price updates)
   setGasPrice(price) {
