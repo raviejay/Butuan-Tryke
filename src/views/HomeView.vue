@@ -1,5 +1,12 @@
 <template>
   <div class="relative w-screen h-screen">
+    <!-- Custom Alert Component -->
+    <SimpleAlert
+      :message="alertMessage"
+      :icon="alertIcon"
+      @hide="alertMessage = ''"
+    />
+
     <!-- Splash Screen - Show while loading -->
     <SplashScreen
       v-if="isLoading || loadingError"
@@ -9,19 +16,18 @@
       @retry="retryLoading"
     />
 
-    <!-- Main App Content - Show after loading completes -->
     <template v-else>
       <!-- Map Display Component -->
       <MapDisplay
         ref="mapComponent"
-
         :active-field="activeField"
         :route-suggestions="routeSuggestions"
         :loaded-routes="loadedRoutes"
+        :loaded-terminals="loadedTerminals"
         :is-loading="isLoading"
         :loading-error="loadingError"
         @map-click="handleMapClick"
-        @routes-loaded="initializeRoutes"
+        
       />
 
       <!-- Route Search Component -->
@@ -42,14 +48,54 @@
         @current-location-selected="handleCurrentLocationSelected"
       />
     </template>
+
+    <!-- Processing Overlay - Show during route calculation (outside v-else so it always renders) -->
+    <Transition name="fade">
+      <div
+        v-if="isProcessing"
+        class="fixed inset-0 bg-white bg-opacity-50 z-[9999] flex items-center justify-center backdrop-blur-sm"
+        style="pointer-events: auto;"
+      >
+        <div class="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center space-y-4 max-w-sm mx-4">
+          <!-- Animated Tricycle Icon -->
+          <div class="relative">
+            <div class="animate-bounce">
+              <img 
+                src="@/assets/orange_icon.ico" 
+                alt="Tricycle" 
+                class="w-16 h-16 object-contain"
+              />
+            </div>
+            <!-- Spinning loader ring -->
+            <!-- <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-20 h-20 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+            </div> -->
+          </div>
+          
+          <!-- Loading Text -->
+          <div class="text-center">
+            <h3 class="text-xl font-bold text-gray-800 mb-1">Finding Your Route</h3>
+            <p class="text-sm text-gray-600">Calculating the best tricycle path...</p>
+          </div>
+          
+          <!-- Progress Dots -->
+          <div class="flex space-x-2">
+            <div class="w-2 h-2 bg-orange-600 rounded-full animate-pulse"></div>
+            <div class="w-2 h-2 bg-orange-600 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+            <div class="w-2 h-2 bg-orange-600 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch  } from 'vue'
 import MapDisplay from '@/components/MapDisplay.vue'
 import RouteSearch from '@/components/RouteSearch.vue'
 import SplashScreen from './Splashscreen.vue'
+import SimpleAlert from '@/components/CustomAlert.vue'
 import { RouteFinder } from '@/composables/RouteFinder.js'
 
 // Reactive state
@@ -59,31 +105,33 @@ const activeField = ref('start')
 const searchSuggestions = ref([])
 const routeSuggestions = ref([])
 const loadedRoutes = ref([])
-const isLoading = ref(true) // Start with loading true
+const isLoading = ref(true) 
 const isProcessing = ref(false)
 const loadingError = ref(null)
 const loadingProgress = ref(0)
-
-// Coordinates for routing
+const alertMessage = ref('')
+const alertIcon = ref('info')
 const startCoords = ref(null)
 const destinationCoords = ref(null)
-
-// Component refs
 const mapComponent = ref(null)
+const loadedTerminals = ref([])
 
 // Initialize RouteFinder
 const routeFinder = new RouteFinder()
 
-// Handle map style changes from settings
+const showAlert = (message, icon = 'info') => {
+  alertMessage.value = message
+  alertIcon.value = icon
+}
+
+
 const handleMapStyleChange = (newStyle) => {
   if (mapComponent.value) {
     mapComponent.value.updateMapStyle(newStyle)
   }
 }
 
-// Handle current location selection
 const handleCurrentLocationSelected = async ({ lat, lng, field }) => {
-  // Immediately update coordinates and show marker for better UX
   const tempLocationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
 
   if (field === 'start') {
@@ -110,7 +158,7 @@ const handleCurrentLocationSelected = async ({ lat, lng, field }) => {
       destination.value = locationName || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
     }
   } catch (error) {
-    // Keep the coordinate format if reverse geocoding fails
+
     console.log('Reverse geocoding failed, keeping coordinate format')
     if (field === 'start') {
       start.value = tempLocationName
@@ -122,7 +170,7 @@ const handleCurrentLocationSelected = async ({ lat, lng, field }) => {
 
 // Handle map click events
 const handleMapClick = async ({ lat, lng, activeField: field }) => {
-  // Immediately update coordinates and show marker for better UX
+
   const tempLocationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
 
   if (field === 'start') {
@@ -135,7 +183,7 @@ const handleMapClick = async ({ lat, lng, activeField: field }) => {
     mapComponent.value?.addMarker([lat, lng], false)
   }
 
-  // Asynchronously get the real address name without blocking UI
+
   routeFinder
     .reverseGeocode(lat, lng)
     .then((locationName) => {
@@ -156,7 +204,7 @@ const handleMapClick = async ({ lat, lng, activeField: field }) => {
       }
     })
     .catch(() => {
-      // Keep the coordinate format if reverse geocoding fails
+    
       console.log('Reverse geocoding failed, keeping coordinate format')
     })
 }
@@ -190,44 +238,66 @@ const handlePlaceSelected = async ({ place, activeField: field }) => {
 
   searchSuggestions.value = []
 
-  // Removed auto-triggering - now only triggers when "Find Ride" button is clicked
+
 }
 
-// Main function to find tricycle route
+
+
+
+
+
+
 const findTricycleRoute = async () => {
   if (!startCoords.value || !destinationCoords.value) {
-    alert('Please select both start and destination locations')
+    showAlert('Please select both start and destination locations', 'location_on')
     return
   }
 
   if (loadedRoutes.value.length === 0) {
-    alert('No tricycle routes loaded. Please wait for the routes to load.')
+    showAlert('No tricycle routes loaded. Please wait for the routes to load.', 'hourglass_empty')
     return
   }
 
   isProcessing.value = true
+  console.log('isProcessing set to:', isProcessing.value) // Debug log
 
   try {
     // Clear previous suggestions and highlights first
     clearSuggestions()
+    
+    // Force UI update by waiting for next tick - this allows the loading overlay to render
+    await new Promise(resolve => setTimeout(resolve, 50))
+    
+    // Wrap synchronous heavy computation in setTimeout to not block UI
+    const suggestions = await new Promise((resolve) => {
+      setTimeout(() => {
+        const result = routeFinder.suggestTricycleRouteWithTransfers(
+          startCoords.value,
+          destinationCoords.value,
+        )
+        resolve(result)
+      }, 0)
+    })
 
-    // Get route suggestions
-    const suggestions = routeFinder.suggestTricycleRouteWithTransfers(
-      startCoords.value,
-      destinationCoords.value,
-    )
+    // Format ALL suggestions, not just the first one
     routeSuggestions.value = suggestions
 
     if (suggestions.length === 0) {
-      alert(
-        'No tricycle routes found for your selected locations. Try selecting points closer to the route areas.',
-      )
+      showAlert('No Routes Available.', 'route')
       return
     }
 
     // Calculate and draw the actual route
-    const routeData = await routeFinder.calculateRoute(startCoords.value, destinationCoords.value)
+    const routeData = await routeFinder.calculateRoute(
+      startCoords.value,
+      destinationCoords.value
+    )
 
+    // const routeData = await routeFinder.calculateRouteAvoidingHighway(
+    //   startCoords.value, destinationCoords.value, restrictedHighway
+    //   )
+      
+   
     // Update suggestions with actual route data
     if (routeData.success && routeData.distance && routeData.duration) {
       routeSuggestions.value.forEach((suggestion) => {
@@ -242,13 +312,17 @@ const findTricycleRoute = async () => {
     mapComponent.value?.drawRoute(routeData)
   } catch (error) {
     console.error('Error finding route:', error)
-    alert('Error finding route. Please try again.')
+    showAlert('Error finding route. Please try again.', 'error')
   } finally {
     isProcessing.value = false
+    console.log('isProcessing set to:', isProcessing.value) // Debug log
   }
 }
 
-// Highlight a specific route suggestion
+
+
+
+
 const highlightRoute = (suggestion) => {
   mapComponent.value?.highlightRoute(suggestion)
 }
@@ -257,12 +331,6 @@ const highlightRoute = (suggestion) => {
 const clearSuggestions = () => {
   routeSuggestions.value = []
   mapComponent.value?.clearHighlights()
-}
-
-// Initialize routes when map is ready
-const initializeRoutes = async () => {
-  // This can be called from MapDisplay component if needed
-  // But main loading should be handled in onMounted
 }
 
 // Retry loading function for splash screen
@@ -279,7 +347,7 @@ const loadAppData = async () => {
   loadingProgress.value = 0
 
   try {
-    // Simulate loading steps with progress
+  
     loadingProgress.value = 25
 
     // Load zone data
@@ -287,11 +355,17 @@ const loadAppData = async () => {
     loadedRoutes.value = routes
     loadingProgress.value = 75
 
-    // Additional initialization if needed
-    await new Promise((resolve) => setTimeout(resolve, 500)) // Small delay for UX
+    //Paras terminal
+    const terminals = await routeFinder.loadTerminals()
+    loadedTerminals.value = terminals
+    loadingProgress.value = 75
+ 
+
+    
+    await new Promise((resolve) => setTimeout(resolve, 500)) 
     loadingProgress.value = 100
 
-    // Small delay before hiding splash screen
+    // delay for splashsreen
     await new Promise((resolve) => setTimeout(resolve, 300))
   } catch (error) {
     console.error('Error loading app data:', error)
@@ -303,9 +377,45 @@ const loadAppData = async () => {
     }
   }
 }
+watch(
+  () => startCoords.value,
+  (newCoords, oldCoords) => {
+   //e clear ang route
+    if (oldCoords !== null && newCoords !== null) {
+      routeSuggestions.value = []
+      mapComponent.value?.clearRoute()
+    }
+  },
+  { deep: true }
+)
+
+// Watch for destination coordinate changes
+watch(
+  () => destinationCoords.value,
+  (newCoords, oldCoords) => {
+  
+    if (oldCoords !== null && newCoords !== null) {
+      routeSuggestions.value = []
+      mapComponent.value?.clearRoute()
+    }
+  },
+  { deep: true }
+)
+
 
 onMounted(async () => {
   // Load all app data on mount
   await loadAppData()
 })
 </script>
+
+<style scoped>
+/* Fade transition for loading overlay */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>

@@ -6,7 +6,7 @@
         <img
           src="../assets/logo4.png"
           alt="TricycleNav Logo"
-          class="w-30 h-30"
+          class="w-36 h-30"
         />
       </div>
 

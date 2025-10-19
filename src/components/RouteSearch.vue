@@ -1,5 +1,44 @@
+//RouteSearch
+
 <template>
     <div>
+
+      <CustomAlert
+      :message="alertMessage"
+      :icon="alertIcon"
+      @hide="alertMessage = ''"
+    />
+         <!-- Full Viewport Loading Overlay -->
+      <div
+        v-if="isLoading"
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+      >
+        <div class="bg-white rounded-lg p-6 flex flex-col items-center shadow-2xl">
+          <svg
+            class="animate-spin h-12 w-12 text-orange-600 mb-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <p class="text-gray-700 font-medium">Finding your route...</p>
+        </div>
+      </div>
+
+
       <!-- Route Suggestions Panel (Desktop Only) -->
       <div
   v-if="routeSuggestions.length > 0"
@@ -187,7 +226,8 @@
                       </div>
                     </div>
                     <div v-if="suggestion.transferPoints" class="text-xs text-blue-600 mt-1">
-                      Transfer at: {{ suggestion.transferPoints.join(', ') }}
+                      <!-- Transfer at: {{ suggestion.transferPoints.join(', ') }} -->
+                       You can transfer in Terminal for specific zone
                     </div>
                     <div class="text-xs text-gray-400 mt-1">
                       <span v-if="suggestion.startDistance > 0.1">
@@ -815,7 +855,8 @@
                       </div>
                     </div>
                     <div v-if="suggestion.transferPoints" class="text-xs text-blue-600 mt-1">
-                      Transfer at: {{ suggestion.transferPoints.join(', ') }}
+                      <!-- Transfer at: {{ suggestion.transferPoints.join(', ') }} -->
+                       You can transfer in Terminal for specific zone
                     </div>
                     <div class="text-xs text-gray-400 mt-1">
                       <span v-if="suggestion.startDistance > 0.1">
@@ -999,6 +1040,7 @@
   import { ref, watch, computed, onUnmounted, } from 'vue'
   import AuthDropdown from './Auth.vue'
   import ReviewReportModal from './ReportModal.vue'
+  import CustomAlert from './CustomAlert.vue'
 
   import redIcon from '@/assets/red_icon.ico'
   import orangeIcon from '@/assets/orange_icon.ico'
@@ -1072,9 +1114,18 @@
   const showReviewModal = ref(false)
   const currentUser = ref(null)
   const gettingLocation = ref(false)
+  const alertMessage = ref('')
+  const alertIcon = ref('info')
 
   // Component refs
   const authComponent = ref(null)
+
+// Simple alert function to replace browser alert
+const showAlert = (message, icon = 'info') => {
+  alertMessage.value = message
+  alertIcon.value = icon
+}
+
 
   // Watch for prop changes
   watch(
@@ -1195,7 +1246,7 @@
       authComponent.value?.openLoginModal()
       // Show a message to inform user they need to login
       setTimeout(() => {
-        alert('Please login or sign up to submit a review or report.')
+        showAlert('Please login or sign up to submit a review or report.')
       }, 100)
     }
   }
@@ -1257,7 +1308,7 @@
 const isDragging = ref(false)
 const dragStartX = ref(0)
 const dragStartY = ref(0)
-const panelPosition = ref({ x: 16, y: 80 }) // Default position (left-4 = 16px, top-20 = 80px)
+const panelPosition = ref({ x: 1256, y: 80 }) // Default position (left-4 = 16px, top-20 = 80px)
 const draggablePanel = ref(null)
 
 // Drag methods
