@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-100 z-50">
+  <div class="fixed inset-0 bg-gray-100 z-[9999]">
     <div class="flex h-full">
       <!-- Sidebar -->
       <AdminSidebar

@@ -9,7 +9,7 @@
     </div>
 
     <!-- Mobile Burger Menu -->
-    <div class="absolute block md:hidden top-4 left-4 z-[100]">
+    <div class="absolute block md:hidden top-4 left-4 z-[20]">
       <button
         @click="toggleMobileMenu"
         class="bg-white rounded-lg shadow-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer"
