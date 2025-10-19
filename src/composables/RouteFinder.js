@@ -2,6 +2,12 @@ import { supabase } from '@/composables/useSupabase'
 import RouteRestrictionChecker from '@/utils/RouteRestrictionChecker'
 import { restrictedPolyGeoJSON } from '@/utils/restrictedPolyData.js'
 
+import greenIcon from '@/assets/green_icon.ico'
+import redIcon from '@/assets/red_icon.ico'
+import whiteIcon from '@/assets/white_icon.ico'
+import yellowIcon from '@/assets/yellow_icon.ico'
+import orangeIcon from '@/assets/orange_icon.ico'
+
 export class RouteFinder {
   constructor() {
     this.loadedRoutes = []
@@ -41,6 +47,15 @@ export class RouteFinder {
     }
     this.connectionThreshold = 0.10 // 150 meters for zone overlap detection
     this.customFareAdjustments = []
+
+      // Terminal icon map - imported assets
+    this.terminalIconMap = {
+      'green': greenIcon,
+      'red': redIcon,
+      'white': whiteIcon,
+      'yellow': yellowIcon,
+      'orange': orangeIcon
+    }
 
     this.butuanPlaces = [
       { name: 'Butuan City Hall', lat: 8.953775339827885, lng: 125.52922189368539 },
@@ -928,9 +943,10 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await fetch(
-          `/api/nominatim/search?q=${encodeURIComponent(query)}+Butuan&format=json&limit=10`
-        )
+       const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}+Butuan&format=json&limit=10`
+      )
+
         if (!response.ok) throw new Error('Search API failed')
         
         const data = await response.json()
@@ -991,7 +1007,10 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
   async reverseGeocode(lat, lng) {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await fetch(`/api/nominatim/reverse?lat=${lat}&lon=${lng}&format=json`)
+        const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      )
+
         if (!response.ok) throw new Error('Reverse geocode failed')
         
         const data = await response.json()
@@ -1138,14 +1157,8 @@ getFallbackTerminals() {
 
 
 getTerminalIcon(zoneType) {
-  const iconMap = {
-    'green': '/src/assets/green_icon.ico',
-    'red': '/src/assets/red_icon.ico',
-    'white': '/src/assets/white_icon.ico',
-    'yellow': '/src/assets/yellow_icon.ico',
-    'orange': '/src/assets/orange_icon.ico'
-  }
-  return iconMap[zoneType] || '/src/assets/orange_icon.ico'
+  // Use imported icons instead of file paths
+  return this.terminalIconMap[zoneType] || this.terminalIconMap['orange']
 }
 
 
