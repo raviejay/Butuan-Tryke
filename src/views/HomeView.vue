@@ -259,27 +259,31 @@ const findTricycleRoute = async () => {
   }
 
   isProcessing.value = true
-  console.log('isProcessing set to:', isProcessing.value) // Debug log
-
+  
   try {
-    // Clear previous suggestions and highlights first
     clearSuggestions()
     
-    // Force UI update by waiting for next tick - this allows the loading overlay to render
-    await new Promise(resolve => setTimeout(resolve, 50))
+    // Give UI more time to render loading state
+    await new Promise(resolve => setTimeout(resolve, 100))
     
-    // Wrap synchronous heavy computation in setTimeout to not block UI
-    const suggestions = await new Promise((resolve) => {
-      setTimeout(() => {
-        const result = routeFinder.suggestTricycleRouteWithTransfers(
-          startCoords.value,
-          destinationCoords.value,
-        )
-        resolve(result)
-      }, 0)
-    })
+    // ADD: Set a timeout for route finding (prevent infinite hang)
+    const timeoutMs = 10000 // 10 seconds max
+    
+    const suggestions = await Promise.race([
+      new Promise((resolve) => {
+        setTimeout(() => {
+          const result = routeFinder.suggestTricycleRouteWithTransfers(
+            startCoords.value,
+            destinationCoords.value,
+          )
+          resolve(result)
+        }, 0)
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Route finding timeout')), timeoutMs)
+      )
+    ])
 
-    // Format ALL suggestions, not just the first one
     routeSuggestions.value = suggestions
 
     if (suggestions.length === 0) {
@@ -287,18 +291,11 @@ const findTricycleRoute = async () => {
       return
     }
 
-    // Calculate and draw the actual route
     const routeData = await routeFinder.calculateRoute(
       startCoords.value,
       destinationCoords.value
     )
-
-    // const routeData = await routeFinder.calculateRouteAvoidingHighway(
-    //   startCoords.value, destinationCoords.value, restrictedHighway
-    //   )
       
-   
-    // Update suggestions with actual route data
     if (routeData.success && routeData.distance && routeData.duration) {
       routeSuggestions.value.forEach((suggestion) => {
         if (suggestion.type !== 'transfer') {
@@ -308,14 +305,17 @@ const findTricycleRoute = async () => {
       })
     }
 
-    // Draw route on map
     mapComponent.value?.drawRoute(routeData)
   } catch (error) {
     console.error('Error finding route:', error)
-    showAlert('Error finding route. Please try again.', 'error')
+    showAlert(
+      error.message === 'Route finding timeout' 
+        ? 'Route search took too long. Try simpler locations.' 
+        : 'Error finding route. Please try again.', 
+      'error'
+    )
   } finally {
     isProcessing.value = false
-    console.log('isProcessing set to:', isProcessing.value) // Debug log
   }
 }
 

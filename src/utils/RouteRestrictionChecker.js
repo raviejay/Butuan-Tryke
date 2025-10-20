@@ -10,7 +10,9 @@ class RouteRestrictionChecker {
       { id: 'N3', lat: 8.948924, lng: 125.540743, name: 'North Gap 3 (east)' },
       { id: 'N4', lat: 8.958513, lng: 125.527187, name: 'North Gap SUB 1 (East)' },
 
-      { id: 'N5', lat: 8.947064, lng: 125.540719, name: 'North Gap mid 1 (mid)' }
+      { id: 'N5', lat: 8.947064, lng: 125.540719, name: 'North Gap mid 1 (mid)' },
+      
+      { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' }
     ]
     
    
@@ -214,9 +216,8 @@ class RouteRestrictionChecker {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
   }
 
-  // ENHANCED: Smart waypoint selection with up to 2 waypoints per side
-  findOptimalWaypoints(startPoint, endPoint, violations) {
-    console.log('\n=== SMART WAYPOINT SELECTION (2 per side) ===')
+   findOptimalWaypoints(startPoint, endPoint, violations) {
+    console.log('\n=== DYNAMIC WAYPOINT SELECTION ===')
 
     const startSide = this.getPointSide(startPoint)
     const endSide = this.getPointSide(endPoint)
@@ -225,112 +226,178 @@ class RouteRestrictionChecker {
 
     console.log(`Start: ${startSide} | End: ${endSide}`)
 
-    const selectedWaypoints = []
-
     const travelingEast = endLng > startLng
-    const direction = travelingEast ? 'East' : 'West'
-    console.log(`Direction: ${direction}`)
+    console.log(`Direction: ${travelingEast ? 'East' : 'West'}`)
 
-    // Helper for selecting multiple best waypoints with restriction checking
-    const selectTopWaypoints = (pointA, pointB, waypoints, count = 2) => {
-      const startLng = pointA[1]
-      const endLng = pointB[1]
-      const minLng = Math.min(startLng, endLng)
-      const maxLng = Math.max(startLng, endLng)
+    // Helper: Test if a path configuration is valid (no restrictions)
+    const testPath = (waypoints) => {
+      const allPoints = [startPoint, ...waypoints.map(wp => [wp.lat, wp.lng]), endPoint]
+      
+      for (let i = 0; i < allPoints.length - 1; i++) {
+        const check = this.checkDirectPath(allPoints[i], allPoints[i + 1])
+        if (check.hasViolation) {
+          return { valid: false, violations: check.violations.length, segment: i }
+        }
+      }
+      return { valid: true, violations: 0 }
+    }
 
-      // Filter waypoints that are within or near the route's longitude range
-      const relevantWaypoints = waypoints.filter(wp => {
-        const buffer = 0.005 // ~500m buffer outside range
-        return wp.lng >= (minLng - buffer) && wp.lng <= (maxLng + buffer)
-      })
+    // Helper: Get scored waypoints for a side
+    const getScoredWaypoints = (pointA, pointB, waypoints) => {
+      const minLng = Math.min(pointA[1], pointB[1])
+      const maxLng = Math.max(pointA[1], pointB[1])
+      const buffer = 0.005
 
-      // If we have enough relevant waypoints, use them; otherwise use all
-      const candidateWaypoints = relevantWaypoints.length >= count ? relevantWaypoints : waypoints
+      const relevant = waypoints.filter(wp => 
+        wp.lng >= (minLng - buffer) && wp.lng <= (maxLng + buffer)
+      )
+      const candidates = relevant.length > 0 ? relevant : waypoints
 
-      // Score based on proximity AND check for restrictions TO THIS WAYPOINT ONLY
-      const scored = candidateWaypoints.map(wp => {
+      return candidates.map(wp => {
         const wpPoint = [wp.lat, wp.lng]
         const distFromStart = this.calculateDistance(pointA, wpPoint)
         const distFromEnd = this.calculateDistance(wpPoint, pointB)
+        const score = (distFromStart * 2.0) + (distFromEnd * 0.5)
         
-        // ONLY check if path FROM pointA TO this waypoint crosses restrictions
-        // Don't check beyond the waypoint - that's for the next segment
-        let penaltyForRestrictions = 0
-        const pathToWaypoint = this.checkDirectPath(pointA, wpPoint)
-        
-        if (pathToWaypoint.hasViolation) {
-          penaltyForRestrictions += 10.0 // Heavy penalty for restricted path
-          console.log(`    ⚠️ ${wp.name} has ${pathToWaypoint.violations.length} violations on approach from pointA`)
-        }
-        
-        // Heavily weight proximity to start point + penalize restricted paths
-        const score = (distFromStart * 2.0) + (distFromEnd * 0.5) + penaltyForRestrictions
-        
-        return { wp, score, distFromStart, violations: pathToWaypoint.violations.length }
-      })
-
-      // Sort by score (lower is better) and take top N
-      const selected = scored
-        .sort((a, b) => a.score - b.score)
-        .slice(0, count)
-
-      // Sort by proximity to start point (not by longitude!)
-      // This ensures the CLOSEST waypoint comes first in the sequence
-      const orderedByProximity = selected.sort((a, b) => a.distFromStart - b.distFromStart)
-
-      return orderedByProximity.map(s => s.wp)
+        return { wp, score, distFromStart }
+      }).sort((a, b) => a.score - b.score)
     }
 
     if (startSide === endSide) {
-      console.log(`Strategy: Both on ${startSide} side - selecting up to 2 ${startSide} waypoints`)
+      // Same side strategy: try 0, 1, then 2 waypoints
+      console.log(`Strategy: Both on ${startSide} side - testing minimal waypoints`)
       const waypoints = startSide === 'north' ? this.northWaypoints : this.southWaypoints
-      const bestTwo = selectTopWaypoints(startPoint, endPoint, waypoints, 2)
-      bestTwo.forEach((wp, idx) => {
-        selectedWaypoints.push([wp.lat, wp.lng])
-        const dist = this.calculateDistance(startPoint, [wp.lat, wp.lng])
-        console.log(`  [${idx + 1}] ${wp.name} - ${(dist * 1000).toFixed(0)}m from start`)
-      })
-      console.log(`Selected: ${bestTwo.map(wp => wp.name).join(' → ')}`)
-    } else {
-      console.log('Strategy: Crossing sides - using up to 2 waypoints from each side')
+      const scored = getScoredWaypoints(startPoint, endPoint, waypoints)
 
+      // Try 0 waypoints (direct path)
+      console.log('Testing: Direct path (0 waypoints)...')
+      const directTest = testPath([])
+      if (directTest.valid) {
+        console.log('✅ Direct path is CLEAR!')
+        console.log('========================================\n')
+        return []
+      }
+      console.log(`❌ Direct path has ${directTest.violations} violations`)
+
+      // Try 1 waypoint
+      console.log('Testing: 1 waypoint...')
+      for (let i = 0; i < Math.min(3, scored.length); i++) {
+        const wp = scored[i].wp
+        const test = testPath([wp])
+        if (test.valid) {
+          console.log(`✅ SUCCESS with 1 waypoint: ${wp.name}`)
+          console.log('========================================\n')
+          return [[wp.lat, wp.lng]]
+        }
+        console.log(`  ❌ ${wp.name} - still has violations`)
+      }
+
+      // Try 2 waypoints
+      console.log('Testing: 2 waypoints...')
+      for (let i = 0; i < Math.min(2, scored.length); i++) {
+        for (let j = i + 1; j < Math.min(3, scored.length); j++) {
+          const wp1 = scored[i].wp
+          const wp2 = scored[j].wp
+          const orderedWps = scored[i].distFromStart < scored[j].distFromStart 
+            ? [wp1, wp2] : [wp2, wp1]
+          
+          const test = testPath(orderedWps)
+          if (test.valid) {
+            console.log(`✅ SUCCESS with 2 waypoints: ${orderedWps.map(w => w.name).join(' → ')}`)
+            console.log('========================================\n')
+            return orderedWps.map(wp => [wp.lat, wp.lng])
+          }
+        }
+      }
+
+      // Fallback: use top 2
+      console.log('⚠️ Using fallback: top 2 waypoints')
+      const fallback = scored.slice(0, 2).sort((a, b) => a.distFromStart - b.distFromStart).map(s => s.wp)
+      console.log(`Fallback: ${fallback.map(wp => wp.name).join(' → ')}`)
+      console.log('========================================\n')
+      return fallback.map(wp => [wp.lat, wp.lng])
+
+    } else {
+      // Cross-side strategy: try different combinations
+      console.log('Strategy: Crossing sides - testing combinations')
+      
       const midLng = (startLng + endLng) / 2
       const midLat = this.getInterpolatedHighwayLat(midLng)
-
+      
       const startWaypoints = startSide === 'north' ? this.northWaypoints : this.southWaypoints
       const endWaypoints = endSide === 'north' ? this.northWaypoints : this.southWaypoints
+      
+      const startScored = getScoredWaypoints(startPoint, [midLat, midLng], startWaypoints)
+      const endScored = getScoredWaypoints([midLat, midLng], endPoint, endWaypoints)
 
-      const bestStartSide = selectTopWaypoints(startPoint, [midLat, midLng], startWaypoints, 2)
-      const bestEndSide = selectTopWaypoints([midLat, midLng], endPoint, endWaypoints, 2)
+      // Try: 1 start + 1 end
+      console.log('Testing: 1 start + 1 end waypoint...')
+      for (let i = 0; i < Math.min(3, startScored.length); i++) {
+        for (let j = 0; j < Math.min(3, endScored.length); j++) {
+          const combo = [startScored[i].wp, endScored[j].wp]
+          const test = testPath(combo)
+          if (test.valid) {
+            console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+            console.log('========================================\n')
+            return combo.map(wp => [wp.lat, wp.lng])
+          }
+        }
+      }
 
-      console.log(`Start side (${startSide}):`)
-      bestStartSide.forEach((wp, idx) => {
-        const dist = this.calculateDistance(startPoint, [wp.lat, wp.lng])
-        const pathCheck = this.checkDirectPath(startPoint, [wp.lat, wp.lng])
-        const status = pathCheck.hasViolation ? `❌ ${pathCheck.violations.length} violations from START` : '✅ CLEAR from START'
-        console.log(`  [${idx + 1}] ${wp.name} - ${(dist * 1000).toFixed(0)}m from start | ${status}`)
-        selectedWaypoints.push([wp.lat, wp.lng])
-      })
+      // Try: 2 start + 1 end
+      console.log('Testing: 2 start + 1 end waypoint...')
+      for (let i = 0; i < Math.min(2, startScored.length); i++) {
+        for (let j = i + 1; j < Math.min(3, startScored.length); j++) {
+          for (let k = 0; k < Math.min(2, endScored.length); k++) {
+            const startPair = startScored[i].distFromStart < startScored[j].distFromStart
+              ? [startScored[i].wp, startScored[j].wp] 
+              : [startScored[j].wp, startScored[i].wp]
+            const combo = [...startPair, endScored[k].wp]
+            const test = testPath(combo)
+            if (test.valid) {   
+              console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+              console.log('========================================\n')
+              return combo.map(wp => [wp.lat, wp.lng])
+            }
+          }
+        }
+      }
 
-      console.log(`End side (${endSide}):`)
-      bestEndSide.forEach((wp, idx) => {
-        const dist = this.calculateDistance([wp.lat, wp.lng], endPoint)
-        const pathCheck = this.checkDirectPath([wp.lat, wp.lng], endPoint)
-        const status = pathCheck.hasViolation ? `❌ ${pathCheck.violations.length} violations to END` : '✅ CLEAR to END'
-        console.log(`  [${idx + 1}] ${wp.name} - ${(dist * 1000).toFixed(0)}m from end | ${status}`)
-        selectedWaypoints.push([wp.lat, wp.lng])
-      })
+      // Try: 1 start + 2 end
+      console.log('Testing: 1 start + 2 end waypoints...')
+      for (let i = 0; i < Math.min(2, startScored.length); i++) {
+        for (let j = 0; j < Math.min(2, endScored.length); j++) {
+          for (let k = j + 1; k < Math.min(3, endScored.length); k++) {
+            const endPair = endScored[j].distFromStart < endScored[k].distFromStart
+              ? [endScored[j].wp, endScored[k].wp]
+              : [endScored[k].wp, endScored[j].wp]
+            const combo = [startScored[i].wp, ...endPair]
+            const test = testPath(combo)
+            if (test.valid) {
+              console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+              console.log('========================================\n')
+              return combo.map(wp => [wp.lat, wp.lng])
+            }
+          }
+        }
+      }
 
-      console.log(`Selected start side: ${bestStartSide.map(wp => wp.name).join(' → ')}`)
-      console.log(`Selected end side: ${bestEndSide.map(wp => wp.name).join(' → ')}`)
+      // Try: 2 start + 2 end
+      console.log('Testing: 2 start + 2 end waypoints...')
+      const startPair = startScored.slice(0, 2).sort((a, b) => a.distFromStart - b.distFromStart).map(s => s.wp)
+      const endPair = endScored.slice(0, 2).sort((a, b) => a.distFromStart - b.distFromStart).map(s => s.wp)
+      const combo = [...startPair, ...endPair]
+      const test = testPath(combo)
+      
+      if (test.valid) {
+        console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+      } else {
+        console.log(`⚠️ Using fallback combination (may have violations)`)
+      }
+      console.log('========================================\n')
+      return combo.map(wp => [wp.lat, wp.lng])
     }
-
-    console.log(`Total waypoints: ${selectedWaypoints.length}`)
-    console.log('========================================\n')
-
-    return selectedWaypoints
   }
-
   // Helper: Get interpolated highway latitude at any longitude
   getInterpolatedHighwayLat(lng) {
     // Find closest points

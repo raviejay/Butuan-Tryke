@@ -129,6 +129,86 @@
             </button>
           </div>
 
+          <!-- Mobile Zone Image Carousel (inside burger menu) -->
+          <Transition name="slide-up">
+            <div
+              v-if="selectedZoneImages.length > 0"
+              class="mt-4 pt-4 border-t border-gray-200"
+            >
+              <div class="bg-gradient-to-br from-orange-50 to-white rounded-lg p-3">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 class="text-sm font-bold" :style="{ color: currentZoneColor }">
+                      {{ currentZoneName }} Zone
+                    </h3>
+                    <p class="text-xs text-gray-500">Route Images</p>
+                  </div>
+                  <button
+                    @click="closeCarousel"
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <span class="material-symbols-outlined text-lg">close</span>
+                  </button>
+                </div>
+
+                <!-- Image Display -->
+                <div class="relative bg-white rounded-lg overflow-hidden mb-2 shadow-inner" style="height: 160px;">
+                  <img
+                    :src="selectedZoneImages[currentImageIndex]"
+                    :alt="`${currentZoneName} Route ${currentImageIndex + 1}`"
+                    class="w-full h-full object-contain"
+                  />
+                  
+                  <!-- Navigation Arrows (only show if more than 1 image) -->
+                  <template v-if="selectedZoneImages.length > 1">
+                    <button
+                      @click="previousImage"
+                      class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow-lg transition-all"
+                    >
+                      <span class="material-symbols-outlined text-gray-700 text-base">chevron_left</span>
+                    </button>
+                    <button
+                      @click="nextImage"
+                      class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow-lg transition-all"
+                    >
+                      <span class="material-symbols-outlined text-gray-700 text-base">chevron_right</span>
+                    </button>
+                  </template>
+
+                  <!-- Image Counter -->
+                  <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    {{ currentImageIndex + 1 }} / {{ selectedZoneImages.length }}
+                  </div>
+                </div>
+
+                <!-- Thumbnail Navigation (only show if more than 1 image) -->
+                <div v-if="selectedZoneImages.length > 1" class="flex gap-1.5 overflow-x-auto pb-1">
+                  <button
+                    v-for="(image, index) in selectedZoneImages"
+                    :key="index"
+                    @click="currentImageIndex = index"
+                    class="flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-all"
+                    :class="[
+                      currentImageIndex === index 
+                        ? 'scale-105 shadow-md' 
+                        : 'opacity-60 hover:opacity-100'
+                    ]"
+                    :style="{
+                      borderColor: currentImageIndex === index ? currentZoneColor : '#d1d5db'
+                    }"
+                  >
+                    <img
+                      :src="image"
+                      :alt="`Thumbnail ${index + 1}`"
+                      class="w-full h-full object-cover"
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
           <!-- Visible Routes Summary -->
           <div v-if="visibleZones.size > 0" class="mt-4 pt-4 border-t border-gray-200">
             <div class="text-xs font-medium text-gray-700 mb-2">Currently Visible:</div>
@@ -270,23 +350,82 @@
       </div>
     </div>
 
-    <!-- Zone Image Popup (appears on viewport center for 5 seconds) -->
-    <div
-      v-if="selectedZoneImage"
-      class="fixed top-1/2 left-1/2 transform -translate-x-5 -translate-y-1/2 z-50 animate-fade-in-out"
-    >
-      <div class="">
-        <div class="flex flex-col items-center">
-          <img
-            :src="selectedZoneImage.imagePath"
-            :alt="selectedZoneImage.zoneName"
-            class="w-24 h-24 object-contain mb-3 opacity-90"
-          />
-          <h3 class="text-lg font-bold text-orange-600">{{ selectedZoneImage.zoneName }}</h3>
-          <p class="text-xs text-gray-500 mt-1">Zone Route</p>
+    <!-- Desktop Zone Image Carousel (appears on bottom left, hidden on mobile) -->
+    <Transition name="slide-up">
+      <div
+        v-if="selectedZoneImages.length > 0"
+        class="hidden md:block fixed bottom-12 left-4 z-50 bg-white rounded-lg shadow-2xl p-3 max-w-xs w-[288px]"
+      >
+        <div class="flex flex-col">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h3 class="text-sm font-bold" :style="{ color: currentZoneColor }">
+                {{ currentZoneName }} Zone
+              </h3>
+              <p class="text-xs text-gray-500">Route Images</p>
+            </div>
+            <button
+              @click="closeCarousel"
+              class="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+
+          <!-- Image Display -->
+          <div class="relative bg-gray-100 rounded-lg overflow-hidden mb-2" style="height: 180px;">
+            <img
+              :src="selectedZoneImages[currentImageIndex]"
+              :alt="`${currentZoneName} Route ${currentImageIndex + 1}`"
+              class="w-full h-full object-contain bg-white"
+            />
+            
+            <!-- Navigation Arrows (only show if more than 1 image) -->
+            <template v-if="selectedZoneImages.length > 1">
+              <button
+                @click="previousImage"
+                class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1 shadow-lg transition-all"
+              >
+                <span class="material-symbols-outlined text-gray-700 text-sm">chevron_left</span>
+              </button>
+              <button
+                @click="nextImage"
+                class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1 shadow-lg transition-all"
+              >
+                <span class="material-symbols-outlined text-gray-700 text-sm">chevron_right</span>
+              </button>
+            </template>
+
+            <!-- Image Counter -->
+            <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-2 py-0.5 rounded-full text-xs">
+              {{ currentImageIndex + 1 }} / {{ selectedZoneImages.length }}
+            </div>
+          </div>
+
+          <!-- Thumbnail Navigation (only show if more than 1 image) -->
+          <div v-if="selectedZoneImages.length > 1" class="flex gap-1 overflow-x-auto pb-1">
+            <button
+              v-for="(image, index) in selectedZoneImages"
+              :key="index"
+              @click="currentImageIndex = index"
+              class="flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border transition-all"
+              :class="[
+                currentImageIndex === index 
+                  ? 'border-orange-500 scale-105' 
+                  : 'border-gray-300 opacity-60 hover:opacity-100'
+              ]"
+            >
+              <img
+                :src="image"
+                :alt="`Thumbnail ${index + 1}`"
+                class="w-full h-full object-cover"
+              />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -348,7 +487,10 @@ const routeLayerGroups = ref(new Map())
 const visibleZones = ref(new Set())
 const currentMapStyle = ref(localStorage.getItem('mapStyle') || 'standard')
 const isPanelMinimized = ref(false)
-const selectedZoneImage = ref(null)
+const selectedZoneImages = ref([])
+const currentImageIndex = ref(0)
+const currentZoneName = ref('')
+const currentZoneColor = ref('#f97316')
 const terminalMarkers = ref(new Map())
 const terminalLayerGroup = ref(null)
 const showTerminals = ref(true)
@@ -357,35 +499,83 @@ const isMobileMenuOpen = ref(false)
 // Make orange icon accessible for template
 const orangeIconUrl = orangeIcon
 
-// Zone image mapping based on zone name using imported icons
+// Zone image mapping based on zone name - now returns arrays of images
 const zoneImageMap = {
-  'White': whiteIcon,
-  'Green': greenIcon,
-  'Orange': orangeIcon,
-  'Red': redIcon,
-  'Yellow': yellowIcon,
+  'White': [whiteIcon],
+  'Green': [
+    new URL('@/assets/green_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone3.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone4.jpg', import.meta.url).href,
+  ],
+  'Orange': [
+    new URL('@/assets/orange_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/orange_zone2.jpg', import.meta.url).href,
+  ],
+  'Red': [
+    new URL('@/assets/red_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/red_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/red_zone3.jpg', import.meta.url).href,
+  ],
+  'Yellow': [
+    new URL('@/assets/yellow_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/yellow_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/yellow_zone3.jpg', import.meta.url).href,
+  ],
 }
 
 const colorImageMap = {
-  '#ef4444': redIcon,
-  '#dc2626': redIcon,
-  '#10b981': greenIcon,
-  '#16a34a': greenIcon,
-  '#f59e0b': orangeIcon,
-  '#ea580c': orangeIcon,
-  '#fbbf24': yellowIcon,
-  '#eab308': yellowIcon,
-  '#000': whiteIcon,
-  '#000000': whiteIcon,
+  '#ef4444': [
+    new URL('@/assets/red_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/red_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/red_zone3.jpg', import.meta.url).href,
+  ],
+  '#dc2626': [
+    new URL('@/assets/red_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/red_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/red_zone3.jpg', import.meta.url).href,
+  ],
+  '#10b981': [
+    new URL('@/assets/green_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone3.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone4.jpg', import.meta.url).href,
+  ],
+  '#16a34a': [
+    new URL('@/assets/green_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone3.jpg', import.meta.url).href,
+    new URL('@/assets/green_zone4.jpg', import.meta.url).href,
+  ],
+  '#f59e0b': [
+    new URL('@/assets/orange_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/orange_zone2.jpg', import.meta.url).href,
+  ],
+  '#ea580c': [
+    new URL('@/assets/orange_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/orange_zone2.jpg', import.meta.url).href,
+  ],
+  '#fbbf24': [
+    new URL('@/assets/yellow_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/yellow_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/yellow_zone3.jpg', import.meta.url).href,
+  ],
+  '#eab308': [
+    new URL('@/assets/yellow_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/yellow_zone2.jpg', import.meta.url).href,
+    new URL('@/assets/yellow_zone3.jpg', import.meta.url).href,
+  ],
+  '#000': [whiteIcon],
+  '#000000': [whiteIcon],
 }
 
-const getZoneImage = (zoneName, color) => {
+const getZoneImages = (zoneName, color) => {
   // Try zone name first, then fallback to color-based mapping
   if (zoneImageMap[zoneName]) {
     return zoneImageMap[zoneName]
   }
   
-  return colorImageMap[color] || orangeIcon
+  return colorImageMap[color] || [orangeIcon]
 }
 
 // Computed properties
@@ -412,27 +602,40 @@ const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
 
-// Close mobile menu when zone is toggled
-const toggleZoneVisibilityMobile = (zoneId) => {
-  toggleZoneVisibility(zoneId)
-  // Keep menu open for easy multiple selections
+// Carousel navigation functions
+const nextImage = () => {
+  if (currentImageIndex.value < selectedZoneImages.value.length - 1) {
+    currentImageIndex.value++
+  } else {
+    currentImageIndex.value = 0 // Loop back to first image
+  }
 }
 
-// Show zone image
-const showZoneImage = (route) => {
-  const imagePath = getZoneImage(route.zone, route.color)
-  if (imagePath) {
-    selectedZoneImage.value = {
-      zoneName: route.zone,
-      imagePath: imagePath
-    }
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      selectedZoneImage.value = null
-    }, 5000)
+const previousImage = () => {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--
   } else {
-    console.warn(`No image found for zone: ${route.zone}`)
+    currentImageIndex.value = selectedZoneImages.value.length - 1 // Loop to last image
+  }
+}
+
+const closeCarousel = () => {
+  selectedZoneImages.value = []
+  currentImageIndex.value = 0
+  currentZoneName.value = ''
+  currentZoneColor.value = '#f97316'
+}
+
+// Show zone images in carousel
+const showZoneImages = (route) => {
+  const images = getZoneImages(route.zone, route.color)
+  if (images && images.length > 0) {
+    selectedZoneImages.value = images
+    currentImageIndex.value = 0
+    currentZoneName.value = route.zone
+    currentZoneColor.value = route.color
+  } else {
+    console.warn(`No images found for zone: ${route.zone}`)
   }
 }
 
@@ -445,12 +648,17 @@ const toggleZoneVisibility = (zoneId) => {
     // Hide zone
     visibleZones.value.delete(zoneId)
     hideZoneOnMap(zoneId)
+    
+    // Close carousel if this zone's images are being displayed
+    if (currentZoneName.value === zone.zone) {
+      closeCarousel()
+    }
   } else {
     // Show zone
     visibleZones.value.add(zoneId)
     showZoneOnMap(zone)
-    // Show zone image when a zone is made visible
-    showZoneImage(zone)
+    // Show zone images in carousel when a zone is made visible
+    showZoneImages(zone)
   }
   
   // Emit event for parent component
@@ -467,15 +675,16 @@ const toggleAllZones = () => {
     // Hide all zones
     visibleZones.value.clear()
     hideAllZonesOnMap()
+    closeCarousel()
   } else {
     // Show all zones
     props.loadedRoutes.forEach(route => {
       visibleZones.value.add(route.id)
       showZoneOnMap(route)
     })
-    // Show image of first zone
+    // Show images of first zone in carousel
     if (props.loadedRoutes.length > 0) {
-      showZoneImage(props.loadedRoutes[0])
+      showZoneImages(props.loadedRoutes[0])
     }
   }
 }
@@ -1061,6 +1270,25 @@ defineExpose({
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+
+/* Slide up transition for carousel */
+.slide-up-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-up-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-up-enter-from {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
 }
 
 .animate-fade-in-out {

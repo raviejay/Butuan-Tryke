@@ -18,7 +18,15 @@ export class RouteFinder {
     this.loadedTerminals = []
     this.terminalCache = new Map()
     this.restrictionChecker = new RouteRestrictionChecker(restrictedPolyGeoJSON)
-    
+     this.connectivityGraphCache = new Map()
+     this.maxPathsToEvaluate = 10 
+
+     const PERFORMANCE_CONFIG = {
+      MAX_PATHS_TO_EVALUATE: 10,
+      MAX_PATHS_TO_FIND: 15,
+      EARLY_STOP_THRESHOLD: 5,
+      GRAPH_CACHE_ENABLED: true
+    }
 
     this.zoneConfig = {
         orange: { name: 'Orange Zone Tricycle Route', color: '#ea580c' },
@@ -114,42 +122,42 @@ export class RouteFinder {
   }
 
   // Find zone paths with VALIDATION of actual connectivity
-  findZonePaths(startZone, endZone, maxTransfers = 3) {
-    if (startZone === endZone) return [[startZone]]
+  // findZonePaths(startZone, endZone, maxTransfers = 3) {
+  //   if (startZone === endZone) return [[startZone]]
     
-    const paths = []
-    const queue = [[startZone]]
-    const visited = new Set()
+  //   const paths = []
+  //   const queue = [[startZone]]
+  //   const visited = new Set()
     
-    while (queue.length > 0) {
-      const currentPath = queue.shift()
-      const currentZone = currentPath[currentPath.length - 1]
+  //   while (queue.length > 0) {
+  //     const currentPath = queue.shift()
+  //     const currentZone = currentPath[currentPath.length - 1]
       
-      if (currentPath.length > maxTransfers + 1) continue
+  //     if (currentPath.length > maxTransfers + 1) continue
       
-      const stateKey = currentPath.join('-')
-      if (visited.has(stateKey)) continue
-      visited.add(stateKey)
+  //     const stateKey = currentPath.join('-')
+  //     if (visited.has(stateKey)) continue
+  //     visited.add(stateKey)
       
-      if (currentZone === endZone) {
-        paths.push(currentPath)
-        continue
-      }
+  //     if (currentZone === endZone) {
+  //       paths.push(currentPath)
+  //       continue
+  //     }
       
-      // Get VALIDATED connections 
-      const connections = this.zoneConnectivity.get(currentZone)
-      if (!connections) continue
+  //     // Get VALIDATED connections 
+  //     const connections = this.zoneConnectivity.get(currentZone)
+  //     if (!connections) continue
       
-      for (const [nextZone, transferPoints] of connections.entries()) {
-        // Only proceed if we have valid transfer points
-        if (transferPoints.length > 0 && !currentPath.includes(nextZone)) {
-          queue.push([...currentPath, nextZone])
-        }
-      }
-    }
+  //     for (const [nextZone, transferPoints] of connections.entries()) {
+  //       // Only proceed if we have valid transfer points
+  //       if (transferPoints.length > 0 && !currentPath.includes(nextZone)) {
+  //         queue.push([...currentPath, nextZone])
+  //       }
+  //     }
+  //   }
     
-    return paths
-  }
+  //   return paths
+  // }
 
 
 calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false) {
@@ -386,116 +394,116 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
 }
 
   // Main routing function
-  suggestTricycleRouteWithTransfers(startPoint, endPoint, isDiscounted = false) {
-    console.log('\n========== ROUTE FINDING START ==========')
-    console.log('Start Point:', startPoint)
-    console.log('End Point:', endPoint)
-    console.log('Discounted:', isDiscounted)
+  // suggestTricycleRouteWithTransfers(startPoint, endPoint, isDiscounted = false) {
+  //   console.log('\n========== ROUTE FINDING START ==========')
+  //   console.log('Start Point:', startPoint)
+  //   console.log('End Point:', endPoint)
+  //   console.log('Discounted:', isDiscounted)
     
-    if (this.loadedRoutes.length === 0) {
-      console.log('❌ No routes loaded')
-      return []
-    }
+  //   if (this.loadedRoutes.length === 0) {
+  //     console.log('❌ No routes loaded')
+  //     return []
+  //   }
 
-    // Initialize connectivity if needed
-    if (this.zoneConnectivity.size === 0) {
-      console.log('Initializing zone connectivity...')
-      this.initializeZoneConnectivity()
-    }
+  //   // Initialize connectivity if needed
+  //   if (this.zoneConnectivity.size === 0) {
+  //     console.log('Initializing zone connectivity...')
+  //     this.initializeZoneConnectivity()
+  //   }
 
-    const cachedRoute = this.getCachedRoute(startPoint, endPoint, isDiscounted)
-    if (cachedRoute) {
-      console.log('✅ Returning cached route')
-      return cachedRoute
-    }
+  //   const cachedRoute = this.getCachedRoute(startPoint, endPoint, isDiscounted)
+  //   if (cachedRoute) {
+  //     console.log('✅ Returning cached route')
+  //     return cachedRoute
+  //   }
 
-    const suggestions = []
+  //   const suggestions = []
     
-    // Find accessible zones
-    console.log('\n--- Finding Accessible Zones ---')
-    const startZones = new Set()
-    const endZones = new Set()
+  //   // Find accessible zones
+  //   console.log('\n--- Finding Accessible Zones ---')
+  //   const startZones = new Set()
+  //   const endZones = new Set()
     
-    this.loadedRoutes.forEach(route => {
-      const startDistance = this.calculateNearestDistance(startPoint, route)
-      const endDistance = this.calculateNearestDistance(endPoint, route)
+  //   this.loadedRoutes.forEach(route => {
+  //     const startDistance = this.calculateNearestDistance(startPoint, route)
+  //     const endDistance = this.calculateNearestDistance(endPoint, route)
       
-      console.log(`${route.zone} Zone:`)
-      console.log(`  Start distance: ${(startDistance * 1000).toFixed(0)}m`)
-      console.log(`  End distance: ${(endDistance * 1000).toFixed(0)}m`)
+  //     console.log(`${route.zone} Zone:`)
+  //     console.log(`  Start distance: ${(startDistance * 1000).toFixed(0)}m`)
+  //     console.log(`  End distance: ${(endDistance * 1000).toFixed(0)}m`)
       
-      if (startDistance <= this.userPreferences.maxWalkDistance) {
-        startZones.add(route.zone)
-        console.log(`  ✅ Accessible from start`)
-      }
-      if (endDistance <= this.userPreferences.maxWalkDistance) {
-        endZones.add(route.zone)
-        console.log(`  ✅ Accessible to end`)
-      }
-    })
+  //     if (startDistance <= this.userPreferences.maxWalkDistance) {
+  //       startZones.add(route.zone)
+  //       console.log(`  ✅ Accessible from start`)
+  //     }
+  //     if (endDistance <= this.userPreferences.maxWalkDistance) {
+  //       endZones.add(route.zone)
+  //       console.log(`  ✅ Accessible to end`)
+  //     }
+  //   })
     
-    console.log('\nStart-accessible zones:', Array.from(startZones))
-    console.log('End-accessible zones:', Array.from(endZones))
+  //   console.log('\nStart-accessible zones:', Array.from(startZones))
+  //   console.log('End-accessible zones:', Array.from(endZones))
     
-    // Find all valid zone paths
-    console.log('\n--- Finding Zone Paths ---')
-    const allPaths = []
-    for (const startZone of startZones) {
-      for (const endZone of endZones) {
-        const paths = this.findZonePaths(startZone, endZone, this.userPreferences.maxTransfers)
-        console.log(`Paths from ${startZone} to ${endZone}:`, paths)
-        allPaths.push(...paths)
-      }
-    }
+  //   // Find all valid zone paths
+  //   console.log('\n--- Finding Zone Paths ---')
+  //   const allPaths = []
+  //   for (const startZone of startZones) {
+  //     for (const endZone of endZones) {
+  //       const paths = this.findZonePaths(startZone, endZone, this.userPreferences.maxTransfers)
+  //       console.log(`Paths from ${startZone} to ${endZone}:`, paths)
+  //       allPaths.push(...paths)
+  //     }
+  //   }
     
-    console.log('\nTotal paths found:', allPaths.length)
-    allPaths.forEach((path, idx) => {
-      console.log(`  Path ${idx + 1}: ${path.join(' → ')}`)
-    })
+  //   console.log('\nTotal paths found:', allPaths.length)
+  //   allPaths.forEach((path, idx) => {
+  //     console.log(`  Path ${idx + 1}: ${path.join(' → ')}`)
+  //   })
     
-    // Calculate routes for each path with validation
-    console.log('\n--- Calculating Routes ---')
-    for (const zonePath of allPaths) {
-      console.log(`\nEvaluating path: ${zonePath.join(' → ')}`)
-      const route = this.calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted)
-      if (route) {
-        route.score = this.calculateRouteScore(route)
-        suggestions.push(route)
-        console.log(`✅ Valid route found:`)
-        console.log(`   Type: ${route.type}`)
-        console.log(`   Transfers: ${route.transferCount}`)
-        console.log(`   Fare: ₱${route.totalFare.toFixed(2)} (₱${route.totalDiscountedFare.toFixed(2)} disc)`)
-        console.log(`   Walk distance: ${route.totalWalkDistance}m`)
-        console.log(`   Score: ${route.score.toFixed(2)}`)
-      } else {
-        console.log(`❌ Route rejected (see validation logs above)`)
-      }
-    }
+  //   // Calculate routes for each path with validation
+  //   console.log('\n--- Calculating Routes ---')
+  //   for (const zonePath of allPaths) {
+  //     console.log(`\nEvaluating path: ${zonePath.join(' → ')}`)
+  //     const route = this.calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted)
+  //     if (route) {
+  //       route.score = this.calculateRouteScore(route)
+  //       suggestions.push(route)
+  //       console.log(`✅ Valid route found:`)
+  //       console.log(`   Type: ${route.type}`)
+  //       console.log(`   Transfers: ${route.transferCount}`)
+  //       console.log(`   Fare: ₱${route.totalFare.toFixed(2)} (₱${route.totalDiscountedFare.toFixed(2)} disc)`)
+  //       console.log(`   Walk distance: ${route.totalWalkDistance}m`)
+  //       console.log(`   Score: ${route.score.toFixed(2)}`)
+  //     } else {
+  //       console.log(`❌ Route rejected (see validation logs above)`)
+  //     }
+  //   }
     
-    // Sort and return top suggestions
-    console.log('\n--- Final Results ---')
-    const sortedSuggestions = suggestions
-      .sort((a, b) => {
-        if (Math.abs(a.score - b.score) < 5) {
-          return a.transferCount - b.transferCount
-        }
-        return b.score - a.score
-      })
-      .slice(0, 5)
+  //   // Sort and return top suggestions
+  //   console.log('\n--- Final Results ---')
+  //   const sortedSuggestions = suggestions
+  //     .sort((a, b) => {
+  //       if (Math.abs(a.score - b.score) < 5) {
+  //         return a.transferCount - b.transferCount
+  //       }
+  //       return b.score - a.score
+  //     })
+  //     .slice(0, 5)
 
-    console.log(`Found ${sortedSuggestions.length} valid route(s)`)
-    sortedSuggestions.forEach((route, idx) => {
-      console.log(`\n${idx + 1}. ${route.type === 'direct' ? 'Direct' : 'Multi-transfer'} Route`)
-      console.log(`   Path: ${route.zonePath?.join(' → ') || route.zone}`)
-      console.log(`   Fare: ₱${route.totalFare.toFixed(2)}`)
-      console.log(`   Transfers: ${route.transferCount}`)
-      console.log(`   Score: ${route.score.toFixed(2)}`)
-    })
+  //   console.log(`Found ${sortedSuggestions.length} valid route(s)`)
+  //   sortedSuggestions.forEach((route, idx) => {
+  //     console.log(`\n${idx + 1}. ${route.type === 'direct' ? 'Direct' : 'Multi-transfer'} Route`)
+  //     console.log(`   Path: ${route.zonePath?.join(' → ') || route.zone}`)
+  //     console.log(`   Fare: ₱${route.totalFare.toFixed(2)}`)
+  //     console.log(`   Transfers: ${route.transferCount}`)
+  //     console.log(`   Score: ${route.score.toFixed(2)}`)
+  //   })
 
-    this.cacheRoute(startPoint, endPoint, isDiscounted, sortedSuggestions)
-    console.log('\n========== ROUTE FINDING END ==========\n')
-    return sortedSuggestions
-  }
+  //   this.cacheRoute(startPoint, endPoint, isDiscounted, sortedSuggestions)
+  //   console.log('\n========== ROUTE FINDING END ==========\n')
+  //   return sortedSuggestions
+  // }
 
   calculateRouteScore(route) {
     const { preferCheapest, preferFastest } = this.userPreferences
@@ -601,38 +609,38 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
     return distance <= 4 ? baseFare : baseFare + Math.ceil(distance - 4) * (isDiscounted ? 0.8 : 1.0)
   }
 
- async loadZoneData() {
-    try {
-        const { data: allZoneData, error } = await supabase.from('route_zones').select('*')
-        if (error) throw error
+//  async loadZoneData() {
+//     try {
+//         const { data: allZoneData, error } = await supabase.from('route_zones').select('*')
+//         if (error) throw error
 
-        if (!allZoneData || allZoneData.length === 0) {
-          console.warn('No zone data found, using fallback')
-          return this.getFallbackRoutes()
-        }
+//         if (!allZoneData || allZoneData.length === 0) {
+//           console.warn('No zone data found, using fallback')
+//           return this.getFallbackRoutes()
+//         }
 
-        const zoneGroups = allZoneData.reduce((acc, zone) => {
-          acc[zone.zone_type] = acc[zone.zone_type] || []
-          acc[zone.zone_type].push(zone)
-          return acc
-        }, {})
+//         const zoneGroups = allZoneData.reduce((acc, zone) => {
+//           acc[zone.zone_type] = acc[zone.zone_type] || []
+//           acc[zone.zone_type].push(zone)
+//           return acc
+//         }, {})
 
-        const routes = []
-        for (const [zoneType, zoneData] of Object.entries(zoneGroups)) {
-          if (zoneData.length > 0) {
-            const geojsonData = zoneData[0].geojson_data
-            routes.push(this.processGeoJSONRoutes(geojsonData, zoneType))
-          }
-        }
+//         const routes = []
+//         for (const [zoneType, zoneData] of Object.entries(zoneGroups)) {
+//           if (zoneData.length > 0) {
+//             const geojsonData = zoneData[0].geojson_data
+//             routes.push(this.processGeoJSONRoutes(geojsonData, zoneType))
+//           }
+//         }
 
-        this.loadedRoutes = routes.length > 0 ? routes : this.getFallbackRoutes()
-        this.initializeZoneConnectivity()
-        return this.loadedRoutes
-      } catch (error) {
-        console.error('Failed to load zone data:', error)
-        return this.getFallbackRoutes()
-      }
-  }
+//         this.loadedRoutes = routes.length > 0 ? routes : this.getFallbackRoutes()
+//         this.initializeZoneConnectivity()
+//         return this.loadedRoutes
+//       } catch (error) {
+//         console.error('Failed to load zone data:', error)
+//         return this.getFallbackRoutes()
+//       }
+//   }
 
   getFallbackRoutes() {
     const fallbackData = {
@@ -718,58 +726,58 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
     return { graph, segments }
   }
 
-  arePointsConnected(point1, point2, route) {
-    const { graph, segments } = this.buildConnectivityGraph(route.routes)
-    const point1Segments = []
-    const point2Segments = []
+  // arePointsConnected(point1, point2, route) {
+  //   const { graph, segments } = this.buildConnectivityGraph(route.routes)
+  //   const point1Segments = []
+  //   const point2Segments = []
 
-    segments.forEach(segment => {
-      const distToStart1 = this.calculateDistance(point1, segment.start)
-      const distToEnd1 = this.calculateDistance(point1, segment.end)
-      const distToSegment1 = this.distanceToLineSegment(point1, segment.start, segment.end)
+  //   segments.forEach(segment => {
+  //     const distToStart1 = this.calculateDistance(point1, segment.start)
+  //     const distToEnd1 = this.calculateDistance(point1, segment.end)
+  //     const distToSegment1 = this.distanceToLineSegment(point1, segment.start, segment.end)
 
-      if (Math.min(distToStart1, distToEnd1, distToSegment1) <= this.userPreferences.maxWalkDistance) {
-        point1Segments.push(segment.id)
-      }
+  //     if (Math.min(distToStart1, distToEnd1, distToSegment1) <= this.userPreferences.maxWalkDistance) {
+  //       point1Segments.push(segment.id)
+  //     }
 
-      const distToStart2 = this.calculateDistance(point2, segment.start)
-      const distToEnd2 = this.calculateDistance(point2, segment.end)
-      const distToSegment2 = this.distanceToLineSegment(point2, segment.start, segment.end)
+  //     const distToStart2 = this.calculateDistance(point2, segment.start)
+  //     const distToEnd2 = this.calculateDistance(point2, segment.end)
+  //     const distToSegment2 = this.distanceToLineSegment(point2, segment.start, segment.end)
 
-      if (Math.min(distToStart2, distToEnd2, distToSegment2) <= this.userPreferences.maxWalkDistance) {
-        point2Segments.push(segment.id)
-      }
-    })
+  //     if (Math.min(distToStart2, distToEnd2, distToSegment2) <= this.userPreferences.maxWalkDistance) {
+  //       point2Segments.push(segment.id)
+  //     }
+  //   })
 
-    if (point1Segments.length === 0 || point2Segments.length === 0) return false
+  //   if (point1Segments.length === 0 || point2Segments.length === 0) return false
 
-    for (const startSegment of point1Segments) {
-      if (point2Segments.includes(startSegment)) return true
+  //   for (const startSegment of point1Segments) {
+  //     if (point2Segments.includes(startSegment)) return true
 
-      const visited = new Set()
-      const queue = [{ id: startSegment, distance: 0 }]
-      visited.add(startSegment)
+  //     const visited = new Set()
+  //     const queue = [{ id: startSegment, distance: 0 }]
+  //     visited.add(startSegment)
 
-      while (queue.length > 0) {
-        const { id: currentSegment, distance } = queue.shift()
-        if (distance > 10) break
+  //     while (queue.length > 0) {
+  //       const { id: currentSegment, distance } = queue.shift()
+  //       if (distance > 10) break
 
-        for (const neighbor of graph[currentSegment] || []) {
-          if (point2Segments.includes(neighbor.id)) return true
+  //       for (const neighbor of graph[currentSegment] || []) {
+  //         if (point2Segments.includes(neighbor.id)) return true
 
-          if (!visited.has(neighbor.id)) {
-            visited.add(neighbor.id)
-            queue.push({
-              id: neighbor.id,
-              distance: distance + neighbor.distance
-            })
-          }
-        }
-      }
-    }
+  //         if (!visited.has(neighbor.id)) {
+  //           visited.add(neighbor.id)
+  //           queue.push({
+  //             id: neighbor.id,
+  //             distance: distance + neighbor.distance
+  //           })
+  //         }
+  //       }
+  //     }
+  //   }
 
-    return false
-  }
+  //   return false
+  // }
 
   distanceToLineSegment(point, lineStart, lineEnd) {
     const [px, py] = point
@@ -1450,5 +1458,278 @@ async calculateRoute(startCoords, destinationCoords) {
         await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
       }
     }
+  }
+
+
+  // new 
+
+  getOrBuildConnectivityGraph(route) {
+    const cacheKey = route.id
+    
+    if (this.connectivityGraphCache.has(cacheKey)) {
+      return this.connectivityGraphCache.get(cacheKey)
+    }
+    
+    console.log(`Building connectivity graph for ${route.zone}`)
+    const graphData = this.buildConnectivityGraph(route.routes)
+    this.connectivityGraphCache.set(cacheKey, graphData)
+    
+    return graphData
+  }
+
+  arePointsConnected(point1, point2, route) {
+    // Use cached graph instead of rebuilding
+    const { graph, segments } = this.getOrBuildConnectivityGraph(route)
+    
+    const point1Segments = []
+    const point2Segments = []
+
+    segments.forEach(segment => {
+      const distToStart1 = this.calculateDistance(point1, segment.start)
+      const distToEnd1 = this.calculateDistance(point1, segment.end)
+      const distToSegment1 = this.distanceToLineSegment(point1, segment.start, segment.end)
+
+      if (Math.min(distToStart1, distToEnd1, distToSegment1) <= this.userPreferences.maxWalkDistance) {
+        point1Segments.push(segment.id)
+      }
+
+      const distToStart2 = this.calculateDistance(point2, segment.start)
+      const distToEnd2 = this.calculateDistance(point2, segment.end)
+      const distToSegment2 = this.distanceToLineSegment(point2, segment.start, segment.end)
+
+      if (Math.min(distToStart2, distToEnd2, distToSegment2) <= this.userPreferences.maxWalkDistance) {
+        point2Segments.push(segment.id)
+      }
+    })
+
+    if (point1Segments.length === 0 || point2Segments.length === 0) return false
+
+    for (const startSegment of point1Segments) {
+      if (point2Segments.includes(startSegment)) return true
+
+      const visited = new Set()
+      const queue = [{ id: startSegment, distance: 0 }]
+      visited.add(startSegment)
+
+      while (queue.length > 0) {
+        const { id: currentSegment, distance } = queue.shift()
+        if (distance > 10) break
+
+        for (const neighbor of graph[currentSegment] || []) {
+          if (point2Segments.includes(neighbor.id)) return true
+
+          if (!visited.has(neighbor.id)) {
+            visited.add(neighbor.id)
+            queue.push({
+              id: neighbor.id,
+              distance: distance + neighbor.distance
+            })
+          }
+        }
+      }
+    }
+
+    return false
+  }
+
+  findZonePaths(startZone, endZone, maxTransfers = 3) {
+    if (startZone === endZone) return [[startZone]]
+    
+    const paths = []
+    const queue = [[startZone]]
+    const visited = new Set()
+    
+    // ADD: Stop after finding reasonable number of paths
+    const maxPathsToFind = 15
+    
+    while (queue.length > 0 && paths.length < maxPathsToFind) {
+      const currentPath = queue.shift()
+      const currentZone = currentPath[currentPath.length - 1]
+      
+      if (currentPath.length > maxTransfers + 1) continue
+      
+      const stateKey = currentPath.join('-')
+      if (visited.has(stateKey)) continue
+      visited.add(stateKey)
+      
+      if (currentZone === endZone) {
+        paths.push(currentPath)
+        continue
+      }
+      
+      const connections = this.zoneConnectivity.get(currentZone)
+      if (!connections) continue
+      
+      for (const [nextZone, transferPoints] of connections.entries()) {
+        if (transferPoints.length > 0 && !currentPath.includes(nextZone)) {
+          queue.push([...currentPath, nextZone])
+        }
+      }
+    }
+    
+    // Prioritize shorter paths
+    return paths.sort((a, b) => a.length - b.length)
+  }
+
+  suggestTricycleRouteWithTransfers(startPoint, endPoint, isDiscounted = false) {
+    console.log('\n========== ROUTE FINDING START ==========')
+    console.log('Start Point:', startPoint)
+    console.log('End Point:', endPoint)
+    
+    if (this.loadedRoutes.length === 0) {
+      console.log('❌ No routes loaded')
+      return []
+    }
+
+    // Initialize connectivity if needed
+    if (this.zoneConnectivity.size === 0) {
+      console.log('Initializing zone connectivity...')
+      this.initializeZoneConnectivity()
+    }
+
+    // Check cache first
+    const cachedRoute = this.getCachedRoute(startPoint, endPoint, isDiscounted)
+    if (cachedRoute) {
+      console.log('✅ Returning cached route')
+      return cachedRoute
+    }
+
+    const suggestions = []
+    
+    // Find accessible zones
+    console.log('\n--- Finding Accessible Zones ---')
+    const startZones = new Set()
+    const endZones = new Set()
+    
+    this.loadedRoutes.forEach(route => {
+      const startDistance = this.calculateNearestDistance(startPoint, route)
+      const endDistance = this.calculateNearestDistance(endPoint, route)
+      
+      if (startDistance <= this.userPreferences.maxWalkDistance) {
+        startZones.add(route.zone)
+      }
+      if (endDistance <= this.userPreferences.maxWalkDistance) {
+        endZones.add(route.zone)
+      }
+    })
+    
+    console.log('Start-accessible zones:', Array.from(startZones))
+    console.log('End-accessible zones:', Array.from(endZones))
+    
+    // Find zone paths with limit
+    console.log('\n--- Finding Zone Paths ---')
+    const allPaths = []
+    for (const startZone of startZones) {
+      for (const endZone of endZones) {
+        const paths = this.findZonePaths(startZone, endZone, this.userPreferences.maxTransfers)
+        allPaths.push(...paths)
+        
+        // ADD: Early termination if we have enough paths
+        if (allPaths.length >= this.maxPathsToEvaluate) {
+          console.log(`Limiting to ${this.maxPathsToEvaluate} paths for performance`)
+          break
+        }
+      }
+      if (allPaths.length >= this.maxPathsToEvaluate) break
+    }
+    
+    // Prioritize: direct routes first, then by path length
+    const sortedPaths = allPaths
+      .sort((a, b) => {
+        if (a.length === 1 && b.length > 1) return -1
+        if (b.length === 1 && a.length > 1) return 1
+        return a.length - b.length
+      })
+      .slice(0, this.maxPathsToEvaluate)
+    
+    console.log(`Evaluating top ${sortedPaths.length} paths`)
+    
+    // Calculate routes with early success termination
+    console.log('\n--- Calculating Routes ---')
+    for (const zonePath of sortedPaths) {
+      console.log(`Evaluating path: ${zonePath.join(' → ')}`)
+      
+      const route = this.calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted)
+      
+      if (route) {
+        route.score = this.calculateRouteScore(route)
+        suggestions.push(route)
+        console.log(`✅ Valid route found (score: ${route.score.toFixed(2)})`)
+        
+        // ADD: If we found a great direct route, consider stopping early
+        if (route.type === 'direct' && route.score > 80 && suggestions.length >= 3) {
+          console.log('Found excellent direct route, stopping search')
+          break
+        }
+      }
+      
+      // ADD: Stop if we have enough good suggestions
+      if (suggestions.length >= 5) {
+        console.log('Found 5 valid routes, stopping search')
+        break
+      }
+    }
+    
+    // Sort and return
+    const sortedSuggestions = suggestions
+      .sort((a, b) => {
+        if (Math.abs(a.score - b.score) < 5) {
+          return a.transferCount - b.transferCount
+        }
+        return b.score - a.score
+      })
+      .slice(0, 5)
+
+    console.log(`Returning ${sortedSuggestions.length} route(s)`)
+    
+    this.cacheRoute(startPoint, endPoint, isDiscounted, sortedSuggestions)
+    console.log('========== ROUTE FINDING END ==========\n')
+    
+    return sortedSuggestions
+  }
+
+  async loadZoneData() {
+    try {
+      const { data: allZoneData, error } = await supabase.from('route_zones').select('*')
+      if (error) throw error
+
+      if (!allZoneData || allZoneData.length === 0) {
+        console.warn('No zone data found, using fallback')
+        return this.getFallbackRoutes()
+      }
+
+      const zoneGroups = allZoneData.reduce((acc, zone) => {
+        acc[zone.zone_type] = acc[zone.zone_type] || []
+        acc[zone.zone_type].push(zone)
+        return acc
+      }, {})
+
+      const routes = []
+      for (const [zoneType, zoneData] of Object.entries(zoneGroups)) {
+        if (zoneData.length > 0) {
+          const geojsonData = zoneData[0].geojson_data
+          routes.push(this.processGeoJSONRoutes(geojsonData, zoneType))
+        }
+      }
+
+      this.loadedRoutes = routes.length > 0 ? routes : this.getFallbackRoutes()
+      
+      // CLEAR: Clear connectivity caches when routes change
+      this.connectivityGraphCache.clear()
+      this.zoneConnectivity.clear()
+      
+      this.initializeZoneConnectivity()
+      return this.loadedRoutes
+    } catch (error) {
+      console.error('Failed to load zone data:', error)
+      return this.getFallbackRoutes()
+    }
+  }
+
+   clearAllCaches() {
+    this.routeCache.clear()
+    this.connectivityGraphCache.clear()
+    this.zoneConnectivity.clear()
+    console.log('All caches cleared')
   }
 }
