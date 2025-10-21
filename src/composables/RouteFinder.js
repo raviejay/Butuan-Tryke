@@ -1,7 +1,7 @@
 import { supabase } from '@/composables/useSupabase'
 import RouteRestrictionChecker from '@/utils/RouteRestrictionChecker'
 import { restrictedPolyGeoJSON } from '@/utils/restrictedPolyData.js'
-import EnhancedRouteRestrictionChecker from '@/utils/EnhancedRouteRestrictionChecker'
+
 
 import greenIcon from '@/assets/green_icon.ico'
 import redIcon from '@/assets/red_icon.ico'
