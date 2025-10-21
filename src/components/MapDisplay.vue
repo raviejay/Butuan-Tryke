@@ -495,6 +495,7 @@ const terminalMarkers = ref(new Map())
 const terminalLayerGroup = ref(null)
 const showTerminals = ref(true)
 const isMobileMenuOpen = ref(false)
+const waypointLayerGroup = ref(null)
 
 // Make orange icon accessible for template
 const orangeIconUrl = orangeIcon
@@ -1037,6 +1038,62 @@ const clearTerminals = () => {
   terminalLayerGroup.value = null
 }
 
+// Display waypoints for debugging
+const displayWaypoints = () => {
+  if (!map.value) return
+
+  // Clear existing waypoint markers
+  if (waypointLayerGroup.value && map.value) {
+    map.value.removeLayer(waypointLayerGroup.value)
+  }
+
+  waypointLayerGroup.value = L.layerGroup()
+
+  const restrictionChecker = new RouteRestrictionChecker(restrictedPolyGeoJSON)
+  const allWaypoints = restrictionChecker.getAllWaypointMarkers()
+
+  allWaypoints.forEach((wp) => {
+    const color = wp.side === 'north' ? '#3b82f6' : '#ef4444'
+    
+    const marker = L.circleMarker([wp.lat, wp.lng], {
+      radius: 6,
+      fillColor: color,
+      color: '#fff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8
+    })
+
+    marker.bindPopup(`
+      <div style="font-size: 12px;">
+        <strong>${wp.id}</strong><br/>
+        ${wp.name}<br/>
+        Side: ${wp.side}
+      </div>
+    `)
+
+    waypointLayerGroup.value.addLayer(marker)
+  })
+
+  waypointLayerGroup.value.addTo(map.value)
+  console.log(`Displayed ${allWaypoints.length} waypoint markers`)
+}
+
+const displayRestrictedAreas = () => {
+  const restrictionChecker = new RouteRestrictionChecker(restrictedPolyGeoJSON)
+  const polygons = restrictionChecker.getPolygonsForMap()
+  
+  polygons.forEach(polyCoords => {
+    L.polygon(polyCoords, {
+      color: '#8B4513',
+      fillColor: '#D2691E',
+      fillOpacity: 0.4,
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(map.value).bindPopup('Restricted Highway Area')
+  })
+}
+
 // Watch for terminal data changes
 watch(
   () => props.loadedTerminals,
@@ -1152,11 +1209,14 @@ onMounted(() => {
     }
   })
 
-  if (props.loadedTerminals && props.loadedTerminals.length > 0) {
-    setTimeout(() => {
-      displayTerminals()
-    }, 500)
-  }
+  // if (props.loadedTerminals && props.loadedTerminals.length > 0) {
+  //   setTimeout(() => {
+  //     displayTerminals()
+  //   }, 500)
+  // }
+
+  // displayRestrictedAreas()
+  // displayWaypoints()
 
   emit('routes-loaded')
 })

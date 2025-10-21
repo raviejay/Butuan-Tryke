@@ -1,44 +1,39 @@
-
 class RouteRestrictionChecker {
   constructor(restrictedGeoJSON) {
     this.restrictedPolygons = this.parseGeoJSON(restrictedGeoJSON)
     
-   
     this.northWaypoints = [
       { id: 'N1', lat: 8.948823, lng: 125.530714, name: 'North Gap 1 (west)' },
       { id: 'N2', lat: 8.950436, lng: 125.534950, name: 'North Gap 2 (mid)' },
-      { id: 'N3', lat: 8.948924, lng: 125.540743, name: 'North Gap 3 (east)' },
+      { id: 'N3', lat: 8.950918, lng: 125.540935, name: 'North Gap 3 (east)' },
       { id: 'N4', lat: 8.958513, lng: 125.527187, name: 'North Gap SUB 1 (East)' },
-
-      { id: 'N5', lat: 8.947064, lng: 125.540719, name: 'North Gap mid 1 (mid)' },
-      
-      { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' }
+      { id: 'N5', lat: 8.948280, lng: 125.546785, name: 'North Gap mid 1 (mid)' },
+      { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' },
+      { id: 'N7', lat: 8.951750, lng: 125.537656, name: 'North Gap mid 3 (mid)' }
     ]
     
-   
     this.southWaypoints = [
-      // { id: 'S0', lat: 8.939976, lng: 125.528662, name: 'South Gap sub 1 (East)' },
       { id: 'S1', lat: 8.941320, lng: 125.533488, name: 'South Gap 1 (west)' },
       { id: 'S2', lat: 8.943665, lng: 125.537128, name: 'South Gap 2 (mid)' },
       { id: 'S3', lat: 8.944301, lng: 125.540400, name: 'South Gap 3 (east)' },
       { id: 'S4', lat: 8.940970, lng: 125.532428, name: 'South Gap sub 4 (east)' },
+      { id: 'S5', lat: 8.945942, lng: 125.544160, name: 'South Gap sub 5 (east)' },
+      { id: 'S6', lat: 8.940305, lng: 125.525923, name: 'South Gap sub 6 (west)' }
     ]
-    
 
     this.highwayCenterLine = [
-      [125.508836, 8.943283],  //west
+      [125.508836, 8.943283],
       [125.519338, 8.943069], 
       [125.530741, 8.945172],  
       [125.536227, 8.947275],  
-      [125.543083, 8.947382],  //east
+      [125.543083, 8.947382],
     ]
     
-    this.bufferDistance = 0.00005 // 5 meters buffer
+    this.bufferDistance = 0.00005
   }
 
   parseGeoJSON(geoJSON) {
     const polygons = []
-    
     geoJSON.features.forEach(feature => {
       if (feature.geometry.type === 'MultiPolygon') {
         feature.geometry.coordinates.forEach(polygon => {
@@ -50,15 +45,11 @@ class RouteRestrictionChecker {
         })
       }
     })
-    
     return polygons
   }
 
-  // Determine which side of highway a point is on (dynamic based on curve)
   getPointSide(point) {
     const [lat, lng] = point
-    
-    // Find the two closest centerline points by longitude
     let closestIdx = 0
     let minDist = Math.abs(this.highwayCenterLine[0][0] - lng)
     
@@ -70,22 +61,17 @@ class RouteRestrictionChecker {
       }
     }
     
-    // Interpolate highway center latitude at this longitude
     let centerLat
     if (closestIdx === 0) {
-      // Before first point - use first point
       centerLat = this.highwayCenterLine[0][1]
     } else if (closestIdx === this.highwayCenterLine.length - 1) {
-      // After last point - use last point
       centerLat = this.highwayCenterLine[closestIdx][1]
     } else {
-      // Interpolate between points
       const p1 = this.highwayCenterLine[closestIdx]
       const p2 = closestIdx > 0 && Math.abs(this.highwayCenterLine[closestIdx - 1][0] - lng) < Math.abs(this.highwayCenterLine[closestIdx + 1][0] - lng)
         ? this.highwayCenterLine[closestIdx - 1]
         : this.highwayCenterLine[closestIdx + 1]
       
-      // Linear interpolation
       const lngDiff = p2[0] - p1[0]
       const latDiff = p2[1] - p1[1]
       const ratio = (lng - p1[0]) / lngDiff
@@ -95,7 +81,6 @@ class RouteRestrictionChecker {
     return lat > centerLat ? 'north' : 'south'
   }
 
-  // Check if a point is inside a polygon using ray casting
   isPointInPolygon(point, polygon) {
     const [lat, lng] = point
     const coords = polygon.coordinates
@@ -114,17 +99,14 @@ class RouteRestrictionChecker {
     return inside
   }
 
-  // Check if a line segment intersects with polygon
   lineIntersectsPolygon(point1, point2, polygon) {
     const coords = polygon.coordinates
     
-    // Check if either endpoint is inside
     if (this.isPointInPolygon(point1, polygon) || 
         this.isPointInPolygon(point2, polygon)) {
       return true
     }
     
-    // Check if line intersects any polygon edge
     for (let i = 0; i < coords.length - 1; i++) {
       if (this.segmentsIntersect(point1, point2, coords[i], coords[i + 1])) {
         return true
@@ -134,7 +116,6 @@ class RouteRestrictionChecker {
     return false
   }
 
-  // Check if two line segments intersect
   segmentsIntersect(p1, p2, p3, p4) {
     const [x1, y1] = p1
     const [x2, y2] = p2
@@ -154,7 +135,6 @@ class RouteRestrictionChecker {
     return this.restrictedPolygons.map(p => p.coordinates)
   }
 
-  // Check if a direct path between two points crosses restrictions
   checkDirectPath(point1, point2) {
     const violations = []
     
@@ -174,7 +154,6 @@ class RouteRestrictionChecker {
     }
   }
 
-  // Check if route coordinates intersect restricted areas
   checkRouteIntersection(routeCoordinates) {
     const violations = []
     
@@ -200,11 +179,10 @@ class RouteRestrictionChecker {
     }
   }
 
-  // Calculate distance between two points (Haversine)
   calculateDistance(point1, point2) {
     const [lat1, lng1] = point1
     const [lat2, lng2] = point2
-    const R = 6371 // Earth radius in km
+    const R = 6371
 
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLng = ((lng2 - lng1) * Math.PI) / 180
@@ -216,8 +194,35 @@ class RouteRestrictionChecker {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
   }
 
-   findOptimalWaypoints(startPoint, endPoint, violations) {
-    console.log('\n=== DYNAMIC WAYPOINT SELECTION ===')
+  async testPathWithOSRM(waypoints) {
+    try {
+      const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';')
+      const url = `https://router.project-osrm.org/route/v1/driving/${waypointString}?geometries=geojson&overview=full`
+      
+      const response = await fetch(url)
+      if (!response.ok) return { valid: false, error: 'OSRM failed' }
+      
+      const data = await response.json()
+      if (!data.routes || data.routes.length === 0) {
+        return { valid: false, error: 'No route found' }
+      }
+      
+      const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]])
+      const check = this.checkRouteIntersection(routeCoords)
+      
+      return { 
+        valid: !check.hasViolation, 
+        violations: check.violations.length,
+        routeCoords 
+      }
+    } catch (error) {
+      console.error('OSRM test error:', error)
+      return { valid: false, error: error.message }
+    }
+  }
+
+  async findOptimalWaypoints(startPoint, endPoint, violations) {
+    console.log('\n=== DYNAMIC WAYPOINT SELECTION (OSRM-TESTED) ===')
 
     const startSide = this.getPointSide(startPoint)
     const endSide = this.getPointSide(endPoint)
@@ -225,24 +230,8 @@ class RouteRestrictionChecker {
     const endLng = endPoint[1]
 
     console.log(`Start: ${startSide} | End: ${endSide}`)
+    console.log(`Direction: ${endLng > startLng ? 'East' : 'West'}`)
 
-    const travelingEast = endLng > startLng
-    console.log(`Direction: ${travelingEast ? 'East' : 'West'}`)
-
-    // Helper: Test if a path configuration is valid (no restrictions)
-    const testPath = (waypoints) => {
-      const allPoints = [startPoint, ...waypoints.map(wp => [wp.lat, wp.lng]), endPoint]
-      
-      for (let i = 0; i < allPoints.length - 1; i++) {
-        const check = this.checkDirectPath(allPoints[i], allPoints[i + 1])
-        if (check.hasViolation) {
-          return { valid: false, violations: check.violations.length, segment: i }
-        }
-      }
-      return { valid: true, violations: 0 }
-    }
-
-    // Helper: Get scored waypoints for a side
     const getScoredWaypoints = (pointA, pointB, waypoints) => {
       const minLng = Math.min(pointA[1], pointB[1])
       const maxLng = Math.max(pointA[1], pointB[1])
@@ -264,62 +253,123 @@ class RouteRestrictionChecker {
     }
 
     if (startSide === endSide) {
-      // Same side strategy: try 0, 1, then 2 waypoints
-      console.log(`Strategy: Both on ${startSide} side - testing minimal waypoints`)
+      console.log(`Strategy: Both on ${startSide} side`)
       const waypoints = startSide === 'north' ? this.northWaypoints : this.southWaypoints
       const scored = getScoredWaypoints(startPoint, endPoint, waypoints)
 
-      // Try 0 waypoints (direct path)
+      // Test direct path
       console.log('Testing: Direct path (0 waypoints)...')
-      const directTest = testPath([])
+      const directTest = await this.testPathWithOSRM([startPoint, endPoint])
       if (directTest.valid) {
         console.log('✅ Direct path is CLEAR!')
         console.log('========================================\n')
         return []
       }
-      console.log(`❌ Direct path has ${directTest.violations} violations`)
+      console.log(`❌ Direct: ${directTest.violations} violations`)
 
       // Try 1 waypoint
       console.log('Testing: 1 waypoint...')
-      for (let i = 0; i < Math.min(3, scored.length); i++) {
+      for (let i = 0; i < Math.min(scored.length, waypoints.length); i++) {
         const wp = scored[i].wp
-        const test = testPath([wp])
+        const test = await this.testPathWithOSRM([startPoint, [wp.lat, wp.lng], endPoint])
         if (test.valid) {
-          console.log(`✅ SUCCESS with 1 waypoint: ${wp.name}`)
+          console.log(`✅ SUCCESS: ${wp.name}`)
           console.log('========================================\n')
           return [[wp.lat, wp.lng]]
         }
-        console.log(`  ❌ ${wp.name} - still has violations`)
+        console.log(`  ❌ ${wp.name}: ${test.violations} violations`)
       }
 
       // Try 2 waypoints
       console.log('Testing: 2 waypoints...')
-      for (let i = 0; i < Math.min(2, scored.length); i++) {
-        for (let j = i + 1; j < Math.min(3, scored.length); j++) {
+      for (let i = 0; i < Math.min(scored.length - 1, waypoints.length - 1); i++) {
+        for (let j = i + 1; j < Math.min(scored.length, waypoints.length); j++) {
           const wp1 = scored[i].wp
           const wp2 = scored[j].wp
           const orderedWps = scored[i].distFromStart < scored[j].distFromStart 
-            ? [wp1, wp2] : [wp2, wp1]
+            ? [[wp1.lat, wp1.lng], [wp2.lat, wp2.lng]] 
+            : [[wp2.lat, wp2.lng], [wp1.lat, wp1.lng]]
           
-          const test = testPath(orderedWps)
+          const test = await this.testPathWithOSRM([startPoint, ...orderedWps, endPoint])
           if (test.valid) {
-            console.log(`✅ SUCCESS with 2 waypoints: ${orderedWps.map(w => w.name).join(' → ')}`)
+            console.log(`✅ SUCCESS: ${wp1.name} → ${wp2.name}`)
             console.log('========================================\n')
-            return orderedWps.map(wp => [wp.lat, wp.lng])
+            return orderedWps
           }
         }
       }
 
-      // Fallback: use top 2
-      console.log('⚠️ Using fallback: top 2 waypoints')
-      const fallback = scored.slice(0, 2).sort((a, b) => a.distFromStart - b.distFromStart).map(s => s.wp)
-      console.log(`Fallback: ${fallback.map(wp => wp.name).join(' → ')}`)
+      // Try 3 waypoints
+      console.log('Testing: 3 waypoints...')
+      for (let i = 0; i < Math.min(3, scored.length - 2); i++) {
+        for (let j = i + 1; j < Math.min(4, scored.length - 1); j++) {
+          for (let k = j + 1; k < Math.min(5, scored.length); k++) {
+            const wp1 = scored[i].wp
+            const wp2 = scored[j].wp
+            const wp3 = scored[k].wp
+            
+            // Order by distance from start
+            const orderedWps = [
+              { wp: wp1, dist: scored[i].distFromStart },
+              { wp: wp2, dist: scored[j].distFromStart },
+              { wp: wp3, dist: scored[k].distFromStart }
+            ]
+              .sort((a, b) => a.dist - b.dist)
+              .map(item => [item.wp.lat, item.wp.lng])
+            
+            const test = await this.testPathWithOSRM([startPoint, ...orderedWps, endPoint])
+            if (test.valid) {
+              console.log(`✅ SUCCESS: ${wp1.name} → ${wp2.name} → ${wp3.name}`)
+              console.log('========================================\n')
+              return orderedWps
+            }
+          }
+        }
+      }
+
+      // Try 4 waypoints
+      console.log('Testing: 4 waypoints...')
+      for (let i = 0; i < Math.min(2, scored.length - 3); i++) {
+        for (let j = i + 1; j < Math.min(3, scored.length - 2); j++) {
+          for (let k = j + 1; k < Math.min(4, scored.length - 1); k++) {
+            for (let l = k + 1; l < Math.min(5, scored.length); l++) {
+              const wp1 = scored[i].wp
+              const wp2 = scored[j].wp
+              const wp3 = scored[k].wp
+              const wp4 = scored[l].wp
+              
+              // Order by distance from start
+              const orderedWps = [
+                { wp: wp1, dist: scored[i].distFromStart },
+                { wp: wp2, dist: scored[j].distFromStart },
+                { wp: wp3, dist: scored[k].distFromStart },
+                { wp: wp4, dist: scored[l].distFromStart }
+              ]
+                .sort((a, b) => a.dist - b.dist)
+                .map(item => [item.wp.lat, item.wp.lng])
+              
+              const test = await this.testPathWithOSRM([startPoint, ...orderedWps, endPoint])
+              if (test.valid) {
+                console.log(`✅ SUCCESS: ${wp1.name} → ${wp2.name} → ${wp3.name} → ${wp4.name}`)
+                console.log('========================================\n')
+                return orderedWps
+              }
+            }
+          }
+        }
+      }
+
+      // Fallback: use best 2 waypoints
+      console.log('⚠️ Using best 2 waypoints (may have violations)')
+      const fallback = scored.slice(0, 2)
+        .sort((a, b) => a.distFromStart - b.distFromStart)
+        .map(s => [s.wp.lat, s.wp.lng])
       console.log('========================================\n')
-      return fallback.map(wp => [wp.lat, wp.lng])
+      return fallback
 
     } else {
-      // Cross-side strategy: try different combinations
-      console.log('Strategy: Crossing sides - testing combinations')
+      // Cross-side routing
+      console.log('Strategy: Crossing sides')
       
       const midLng = (startLng + endLng) / 2
       const midLat = this.getInterpolatedHighwayLat(midLng)
@@ -330,77 +380,100 @@ class RouteRestrictionChecker {
       const startScored = getScoredWaypoints(startPoint, [midLat, midLng], startWaypoints)
       const endScored = getScoredWaypoints([midLat, midLng], endPoint, endWaypoints)
 
-      // Try: 1 start + 1 end
-      console.log('Testing: 1 start + 1 end waypoint...')
+      // Try 1 start + 1 end
+      console.log('Testing: 1 start + 1 end...')
       for (let i = 0; i < Math.min(3, startScored.length); i++) {
         for (let j = 0; j < Math.min(3, endScored.length); j++) {
-          const combo = [startScored[i].wp, endScored[j].wp]
-          const test = testPath(combo)
+          const wps = [
+            [startScored[i].wp.lat, startScored[i].wp.lng],
+            [endScored[j].wp.lat, endScored[j].wp.lng]
+          ]
+          const test = await this.testPathWithOSRM([startPoint, ...wps, endPoint])
           if (test.valid) {
-            console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+            console.log(`✅ SUCCESS: ${startScored[i].wp.name} → ${endScored[j].wp.name}`)
             console.log('========================================\n')
-            return combo.map(wp => [wp.lat, wp.lng])
+            return wps
           }
         }
       }
 
-      // Try: 2 start + 1 end
-      console.log('Testing: 2 start + 1 end waypoint...')
-      for (let i = 0; i < Math.min(2, startScored.length); i++) {
+      // Try 2 start + 1 end
+      console.log('Testing: 2 start + 1 end...')
+      for (let i = 0; i < Math.min(2, startScored.length - 1); i++) {
         for (let j = i + 1; j < Math.min(3, startScored.length); j++) {
           for (let k = 0; k < Math.min(2, endScored.length); k++) {
             const startPair = startScored[i].distFromStart < startScored[j].distFromStart
-              ? [startScored[i].wp, startScored[j].wp] 
-              : [startScored[j].wp, startScored[i].wp]
-            const combo = [...startPair, endScored[k].wp]
-            const test = testPath(combo)
-            if (test.valid) {   
-              console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+              ? [[startScored[i].wp.lat, startScored[i].wp.lng], [startScored[j].wp.lat, startScored[j].wp.lng]] 
+              : [[startScored[j].wp.lat, startScored[j].wp.lng], [startScored[i].wp.lat, startScored[i].wp.lng]]
+            const wps = [...startPair, [endScored[k].wp.lat, endScored[k].wp.lng]]
+            
+            const test = await this.testPathWithOSRM([startPoint, ...wps, endPoint])
+            if (test.valid) {
+              console.log(`✅ SUCCESS: ${startScored[i].wp.name} → ${startScored[j].wp.name} → ${endScored[k].wp.name}`)
               console.log('========================================\n')
-              return combo.map(wp => [wp.lat, wp.lng])
+              return wps
             }
           }
         }
       }
 
-      // Try: 1 start + 2 end
-      console.log('Testing: 1 start + 2 end waypoints...')
+      // Try 1 start + 2 end
+      console.log('Testing: 1 start + 2 end...')
       for (let i = 0; i < Math.min(2, startScored.length); i++) {
-        for (let j = 0; j < Math.min(2, endScored.length); j++) {
+        for (let j = 0; j < Math.min(2, endScored.length - 1); j++) {
           for (let k = j + 1; k < Math.min(3, endScored.length); k++) {
             const endPair = endScored[j].distFromStart < endScored[k].distFromStart
-              ? [endScored[j].wp, endScored[k].wp]
-              : [endScored[k].wp, endScored[j].wp]
-            const combo = [startScored[i].wp, ...endPair]
-            const test = testPath(combo)
+              ? [[endScored[j].wp.lat, endScored[j].wp.lng], [endScored[k].wp.lat, endScored[k].wp.lng]]
+              : [[endScored[k].wp.lat, endScored[k].wp.lng], [endScored[j].wp.lat, endScored[j].wp.lng]]
+            const wps = [[startScored[i].wp.lat, startScored[i].wp.lng], ...endPair]
+            
+            const test = await this.testPathWithOSRM([startPoint, ...wps, endPoint])
             if (test.valid) {
-              console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
+              console.log(`✅ SUCCESS: ${startScored[i].wp.name} → ${endScored[j].wp.name} → ${endScored[k].wp.name}`)
               console.log('========================================\n')
-              return combo.map(wp => [wp.lat, wp.lng])
+              return wps
             }
           }
         }
       }
 
-      // Try: 2 start + 2 end
-      console.log('Testing: 2 start + 2 end waypoints...')
-      const startPair = startScored.slice(0, 2).sort((a, b) => a.distFromStart - b.distFromStart).map(s => s.wp)
-      const endPair = endScored.slice(0, 2).sort((a, b) => a.distFromStart - b.distFromStart).map(s => s.wp)
-      const combo = [...startPair, ...endPair]
-      const test = testPath(combo)
-      
-      if (test.valid) {
-        console.log(`✅ SUCCESS: ${combo.map(w => w.name).join(' → ')}`)
-      } else {
-        console.log(`⚠️ Using fallback combination (may have violations)`)
+      // Try 2 start + 2 end
+      console.log('Testing: 2 start + 2 end...')
+      for (let i = 0; i < Math.min(2, startScored.length - 1); i++) {
+        for (let j = i + 1; j < Math.min(3, startScored.length); j++) {
+          for (let k = 0; k < Math.min(2, endScored.length - 1); k++) {
+            for (let l = k + 1; l < Math.min(3, endScored.length); l++) {
+              const startPair = startScored[i].distFromStart < startScored[j].distFromStart
+                ? [[startScored[i].wp.lat, startScored[i].wp.lng], [startScored[j].wp.lat, startScored[j].wp.lng]]
+                : [[startScored[j].wp.lat, startScored[j].wp.lng], [startScored[i].wp.lat, startScored[i].wp.lng]]
+              const endPair = endScored[k].distFromStart < endScored[l].distFromStart
+                ? [[endScored[k].wp.lat, endScored[k].wp.lng], [endScored[l].wp.lat, endScored[l].wp.lng]]
+                : [[endScored[l].wp.lat, endScored[l].wp.lng], [endScored[k].wp.lat, endScored[k].wp.lng]]
+              const wps = [...startPair, ...endPair]
+              
+              const test = await this.testPathWithOSRM([startPoint, ...wps, endPoint])
+              if (test.valid) {
+                console.log(`✅ SUCCESS: 4 waypoints (2+2)`)
+                console.log('========================================\n')
+                return wps
+              }
+            }
+          }
+        }
       }
+
+      // Fallback for cross-side
+      const fallback = [
+        [startScored[0].wp.lat, startScored[0].wp.lng],
+        [endScored[0].wp.lat, endScored[0].wp.lng]
+      ]
+      console.log('⚠️ Using fallback cross-side waypoints')
       console.log('========================================\n')
-      return combo.map(wp => [wp.lat, wp.lng])
+      return fallback
     }
   }
-  // Helper: Get interpolated highway latitude at any longitude
+
   getInterpolatedHighwayLat(lng) {
-    // Find closest points
     let closestIdx = 0
     let minDist = Math.abs(this.highwayCenterLine[0][0] - lng)
     
@@ -415,7 +488,6 @@ class RouteRestrictionChecker {
     if (closestIdx === 0) return this.highwayCenterLine[0][1]
     if (closestIdx === this.highwayCenterLine.length - 1) return this.highwayCenterLine[closestIdx][1]
     
-    // Interpolate
     const p1 = this.highwayCenterLine[closestIdx]
     const p2 = closestIdx > 0 && Math.abs(this.highwayCenterLine[closestIdx - 1][0] - lng) < Math.abs(this.highwayCenterLine[closestIdx + 1][0] - lng)
       ? this.highwayCenterLine[closestIdx - 1]
@@ -427,39 +499,11 @@ class RouteRestrictionChecker {
     return p1[1] + (latDiff * ratio)
   }
 
-  // Find best waypoint from a specific side
-  findBestWaypointOnSide(startPoint, endPoint, waypoints) {
-    const startLng = startPoint[1]
-    const endLng = endPoint[1]
-    const minLng = Math.min(startLng, endLng)
-    const maxLng = Math.max(startLng, endLng)
-
-    // Compute a total route cost for each waypoint
-    const scored = waypoints.map(wp => {
-      const wpPoint = [wp.lat, wp.lng]
-      const distStart = this.calculateDistance(startPoint, wpPoint)
-      const distEnd = this.calculateDistance(wpPoint, endPoint)
-      const totalDist = distStart + distEnd
-
-      // Bonus if waypoint is between the start and end (helps route shape)
-      const inRangeBonus = (wp.lng >= minLng && wp.lng <= maxLng) ? -0.05 : 0.0
-
-      return { wp, score: totalDist + inRangeBonus }
-    })
-
-    // Select waypoint with lowest total travel distance
-    const best = scored.reduce((min, cur) => (cur.score < min.score ? cur : min), scored[0])
-
-    return best.wp
-  }
-
-  // Build waypoint string for OSRM API
   buildWaypointString(startPoint, endPoint, waypoints) {
     const allPoints = [startPoint, ...waypoints, endPoint]
     return allPoints.map(p => `${p[1]},${p[0]}`).join(';')
   }
 
-  // Get visual representation of all waypoints for map display
   getAllWaypointMarkers() {
     return [...this.northWaypoints, ...this.southWaypoints].map(wp => ({
       lat: wp.lat,
@@ -470,31 +514,10 @@ class RouteRestrictionChecker {
     }))
   }
 
-  // Validate that waypoint path avoids all restrictions
-  async validateWaypointPath(startPoint, endPoint, waypoints) {
-    const allPoints = [startPoint, ...waypoints, endPoint]
-    
-    for (let i = 0; i < allPoints.length - 1; i++) {
-      const point1 = allPoints[i]
-      const point2 = allPoints[i + 1]
-      
-      for (const polygon of this.restrictedPolygons) {
-        if (this.lineIntersectsPolygon(point1, point2, polygon)) {
-          return false
-        }
-      }
-    }
-    
-    return true
-  }
-
-  // Debug helper
   analyzeRoute(startPoint, endPoint) {
     console.log('\n=== ROUTE ANALYSIS ===')
     console.log('Start:', startPoint, `(${this.getPointSide(startPoint)} side)`)
     console.log('End:', endPoint, `(${this.getPointSide(endPoint)} side)`)
-    console.log('Lng span:', Math.abs(endPoint[1] - startPoint[1]).toFixed(5))
-    console.log('Crosses highway:', this.getPointSide(startPoint) !== this.getPointSide(endPoint))
     console.log('=====================\n')
   }
 }
