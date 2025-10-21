@@ -502,7 +502,9 @@ const orangeIconUrl = orangeIcon
 
 // Zone image mapping based on zone name - now returns arrays of images
 const zoneImageMap = {
-  'White': [whiteIcon],
+  'White': [  new URL('@/assets/white_zone1.jpg', import.meta.url).href,
+    new URL('@/assets/white_zone2.jpg', import.meta.url).href,
+  ],
   'Green': [
     new URL('@/assets/green_zone1.jpg', import.meta.url).href,
     new URL('@/assets/green_zone2.jpg', import.meta.url).href,
@@ -1209,11 +1211,11 @@ onMounted(() => {
     }
   })
 
-  // if (props.loadedTerminals && props.loadedTerminals.length > 0) {
-  //   setTimeout(() => {
-  //     displayTerminals()
-  //   }, 500)
-  // }
+  if (props.loadedTerminals && props.loadedTerminals.length > 0) {
+    setTimeout(() => {
+      displayTerminals()
+    }, 500)
+  }
 
   // displayRestrictedAreas()
   // displayWaypoints()
