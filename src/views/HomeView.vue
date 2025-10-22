@@ -247,6 +247,8 @@ const handlePlaceSelected = async ({ place, activeField: field }) => {
 
 
 
+// Update your findTricycleRoute function in HomeView
+
 const findTricycleRoute = async () => {
   if (!startCoords.value || !destinationCoords.value) {
     showAlert('Please select both start and destination locations', 'location_on')
@@ -262,12 +264,9 @@ const findTricycleRoute = async () => {
   
   try {
     clearSuggestions()
-    
-    // Give UI more time to render loading state
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // ADD: Set a timeout for route finding (prevent infinite hang)
-    const timeoutMs = 10000 // 10 seconds max
+    const timeoutMs = 10000
     
     const suggestions = await Promise.race([
       new Promise((resolve) => {
@@ -291,10 +290,32 @@ const findTricycleRoute = async () => {
       return
     }
 
+    // Calculate route with restriction checking
     const routeData = await routeFinder.calculateRoute(
       startCoords.value,
       destinationCoords.value
     )
+    
+    // Check if endpoints were adjusted
+    if (routeData.endpointsAdjusted) {
+      let message = 'Route adjusted: '
+      if (routeData.adjustedStart) {
+        message += 'Start point moved outside restricted area. '
+      }
+      if (routeData.adjustedEnd) {
+        message += 'End point moved outside restricted area.'
+      }
+      showAlert(message, 'warning', 5000) // Show for 5 seconds
+    }
+    
+    // Check for route violations
+    if (routeData.hasRestrictionViolation) {
+      showAlert(
+        'Warning: Route may pass through restricted areas. Consider alternative routes.', 
+        'warning',
+        5000
+      )
+    }
       
     if (routeData.success && routeData.distance && routeData.duration) {
       routeSuggestions.value.forEach((suggestion) => {
@@ -305,7 +326,9 @@ const findTricycleRoute = async () => {
       })
     }
 
+    // Draw route with visual indicators for adjusted points
     mapComponent.value?.drawRoute(routeData)
+    
   } catch (error) {
     console.error('Error finding route:', error)
     showAlert(
@@ -319,6 +342,9 @@ const findTricycleRoute = async () => {
   }
 }
 
+// Optional: Add visual markers on map for adjusted points
+// In your MapComponent, you can add small warning icons to show
+// where the original points were vs where routing actually started
 
 
 

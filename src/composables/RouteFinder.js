@@ -1271,8 +1271,31 @@ async calculateRouteWithWaypoints(waypoints) {
 
 //RouteFinder new clas
 
+// Update your calculateRouteAvoidingRestrictions method
+
 async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
-  const maxAttempts = 3
+  const maxAttempts = 2
+  
+  // Reset best route tracker
+  this.bestRouteAttempt = null
+  
+  // STEP 1: Check and adjust endpoints if inside restricted areas
+  let adjustedEndpoints = { start: startCoords, end: destinationCoords, adjusted: false }
+  if (this.restrictionChecker) {
+    adjustedEndpoints = this.restrictionChecker.adjustRouteEndpoints(
+      startCoords, 
+      destinationCoords
+    )
+    
+    // If endpoints were adjusted, notify (you can show this in UI)
+    if (adjustedEndpoints.adjusted) {
+      console.log('🔄 Route endpoints adjusted to avoid restricted areas')
+    }
+  }
+  
+  // Use adjusted coordinates for routing
+  const routeStart = adjustedEndpoints.start
+  const routeEnd = adjustedEndpoints.end
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1282,13 +1305,13 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
       let routeData
       if (attempt === 1) {
         console.log('Trying direct route...')
-        routeData = await this.calculateDirectRoute(startCoords, destinationCoords)
+        routeData = await this.calculateDirectRoute(routeStart, routeEnd)
       } else {
         // Use waypoints from previous violation detection
         console.log('Trying waypoint-based route...')
         routeData = await this.calculateWaypointRoute(
-          startCoords, 
-          destinationCoords, 
+          routeStart, 
+          routeEnd, 
           this.lastViolations
         )
       }
@@ -1309,7 +1332,14 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
         return {
           ...routeData,
           routeType: attempt === 1 ? 'direct' : 'waypoint',
-          waypointsUsed: routeData.waypoints || []
+          waypointsUsed: routeData.waypoints || [],
+          // Include adjustment info
+          endpointsAdjusted: adjustedEndpoints.adjusted,
+          originalStart: adjustedEndpoints.adjusted ? startCoords : null,
+          originalEnd: adjustedEndpoints.adjusted ? destinationCoords : null,
+          adjustedStart: adjustedEndpoints.startAdjusted ? routeStart : null,
+          adjustedEnd: adjustedEndpoints.endAdjusted ? routeEnd : null,
+          violationCount: 0
         }
       }
       
@@ -1317,15 +1347,30 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
       this.lastViolations = violationCheck.violations
       console.log(`⚠️ Route intersects ${violationCheck.violations.length} restricted area(s)`)
       
+      // Track best route (least violations)
+      if (!this.bestRouteAttempt || violationCheck.violations.length < this.bestRouteAttempt.violationCount) {
+        this.bestRouteAttempt = {
+          ...routeData,
+          violationCount: violationCheck.violations.length,
+          violations: violationCheck.violations,
+          attempt: attempt
+        }
+        console.log(`🏆 New best route: ${violationCheck.violations.length} violations (attempt ${attempt})`)
+      }
+      
       if (attempt === maxAttempts) {
         console.log('❌ Unable to find safe route after all attempts')
-        // Return the best attempt with warning
+        console.log(`📊 Returning best route: ${this.bestRouteAttempt.violationCount} violations`)
+        
+        // Return the best attempt found
         return {
-          ...routeData,
-          routeType: 'restricted',
+          ...this.bestRouteAttempt,
+          routeType: 'best-effort',
           hasRestrictionViolation: true,
-          violations: violationCheck.violations,
-          warning: 'Route passes through restricted areas'
+          warning: `Route has ${this.bestRouteAttempt.violationCount} restricted area crossings (best available)`,
+          endpointsAdjusted: adjustedEndpoints.adjusted,
+          originalStart: adjustedEndpoints.adjusted ? startCoords : null,
+          originalEnd: adjustedEndpoints.adjusted ? destinationCoords : null
         }
       }
       
@@ -1333,12 +1378,13 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
       console.error(`Attempt ${attempt} error:`, error)
       if (attempt === maxAttempts) {
         return {
-          coordinates: [startCoords, destinationCoords],
+          coordinates: [routeStart, routeEnd],
           distance: null,
           duration: null,
           success: false,
           fallback: true,
-          error: error.message
+          error: error.message,
+          endpointsAdjusted: adjustedEndpoints.adjusted
         }
       }
       await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
@@ -1376,7 +1422,7 @@ async calculateWaypointRoute(startCoords, destinationCoords, violations) {
   // Get optimal waypoints
   const waypoints = await this.restrictionChecker.findOptimalWaypoints(
     startCoords, 
-    destinationCoords, 
+    destinationCoords,
     violations
   )
   
