@@ -1211,11 +1211,11 @@ onMounted(() => {
     }
   })
 
-  // if (props.loadedTerminals && props.loadedTerminals.length > 0) {
-  //   setTimeout(() => {
-  //     displayTerminals()
-  //   }, 500)
-  // }
+  if (props.loadedTerminals && props.loadedTerminals.length > 0) {
+    setTimeout(() => {
+      displayTerminals()
+    }, 500)
+  }
 
   // displayRestrictedAreas()
   // displayWaypoints()
