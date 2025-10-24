@@ -546,7 +546,7 @@
        :class="[
         isOpen
           ? 'translate-y-0'
-          : (routeSuggestions.length > 0 ? 'translate-y-[90%]' : 'translate-y-[76%]')
+          : (routeSuggestions.length > 0 ? 'translate-y-[72%]' : 'translate-y-[76%]')
       ]"
       >
         <!-- Drag Handle -->

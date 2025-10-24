@@ -1392,28 +1392,7 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
   }
 }
 
-// Direct route without waypoints
-// async calculateDirectRoute(startCoords, destinationCoords) {
-//   const startCoord = `${startCoords[1]},${startCoords[0]}`
-//   const endCoord = `${destinationCoords[1]},${destinationCoords[0]}`
-//   const url = `https://router.project-osrm.org/route/v1/driving/${startCoord};${endCoord}?geometries=geojson&overview=full`
 
-//   const response = await fetch(url)
-//   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-
-//   const data = await response.json()
-//   if (data.routes && data.routes.length > 0) {
-//     const route = data.routes[0]
-//     return {
-//       coordinates: route.geometry.coordinates.map(coord => [coord[1], coord[0]]),
-//       distance: (route.distance / 1000).toFixed(2),
-//       duration: Math.round(route.duration / 60),
-//       success: true,
-//       waypoints: []
-//     }
-//   }
-//   throw new Error('No route found')
-// }
 
 // Route with waypoints to avoid restrictions
 async calculateWaypointRoute(startCoords, destinationCoords, violations) {
