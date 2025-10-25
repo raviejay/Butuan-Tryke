@@ -11,6 +11,7 @@ class RouteRestrictionChecker {
       { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' },
       { id: 'N7', lat: 8.951750, lng: 125.537656, name: 'North Gap mid 3 (mid)' },
       { id: 'N10', lat: 8.948201, lng: 125.542222, name: 'North Gap sub 6 (west)' },
+      
       { id: 'N8', lat: 8.956175, lng: 125.504998, name: 'North Gap mid 4 (mid)' },
       { id: 'N9', lat: 8.960337, lng: 125.515402, name: 'North Gap sub 5 (west)' },
     ]
@@ -25,21 +26,51 @@ class RouteRestrictionChecker {
       { id: 'S9', lat: 8.947525, lng: 125.552867, name: 'South Gap sub 9 (east)' },
       { id: 'S8', lat: 8.935942, lng: 125.555209, name: 'South Gap sub 8 (east)' },
       { id: 'S7', lat: 8.927561, lng: 125.557032, name: 'South Gap sub 7 (west)' },
+
+        
       { id: 'S10', lat: 8.931793, lng: 125.548944, name: 'South Gap sub 10 (east)' },
       { id: 'S11', lat: 8.919436, lng: 125.551529, name: 'South Gap sub 11 (east)' },
       { id: 'S12', lat: 8.925532, lng: 125.539604, name: 'South Gap sub 12 (west)' }
+
     ]
-    
+
     this.highwayCenterLine = [
       [125.508836, 8.943283],
-      [125.519338, 8.943069],
-      [125.530741, 8.945172],
-      [125.536227, 8.947275],
+      [125.519338, 8.943069], 
+      [125.530741, 8.945172],  
+      [125.536227, 8.947275],  
       [125.543083, 8.947382],
     ]
     
     this.bufferDistance = 0.00005
-    this.routeCache = new Map()
+    
+    // Pre-validate waypoints to exclude those inside restricted areas
+    this.validateWaypoints()
+  }
+
+  /**
+   * Validates all waypoints and marks those that are safe to use
+   * Waypoints inside restricted areas are flagged but kept for reference
+   */
+  validateWaypoints() {
+    console.log('🔍 Validating waypoints against restricted areas...')
+    
+    const validate = (waypoints) => {
+      waypoints.forEach(wp => {
+        const check = this.isPointInsideRestriction([wp.lat, wp.lng])
+        wp.isSafe = !check.inside
+        if (!wp.isSafe) {
+          console.log(`⚠️ Waypoint ${wp.name} is inside restricted area ${check.polygonId}`)
+        }
+      })
+    }
+    
+    validate(this.northWaypoints)
+    validate(this.southWaypoints)
+    
+    const safeNorth = this.northWaypoints.filter(wp => wp.isSafe).length
+    const safeSouth = this.southWaypoints.filter(wp => wp.isSafe).length
+    console.log(`✅ Safe waypoints: ${safeNorth} north, ${safeSouth} south`)
   }
 
   parseGeoJSON(geoJSON) {
@@ -81,6 +112,7 @@ class RouteRestrictionChecker {
       const p2 = closestIdx > 0 && Math.abs(this.highwayCenterLine[closestIdx - 1][0] - lng) < Math.abs(this.highwayCenterLine[closestIdx + 1][0] - lng)
         ? this.highwayCenterLine[closestIdx - 1]
         : this.highwayCenterLine[closestIdx + 1]
+      
       const lngDiff = p2[0] - p1[0]
       const latDiff = p2[1] - p1[1]
       const ratio = (lng - p1[0]) / lngDiff
@@ -98,8 +130,10 @@ class RouteRestrictionChecker {
     for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
       const [lat1, lng1] = coords[i]
       const [lat2, lng2] = coords[j]
+      
       const intersect = ((lng1 > lng) !== (lng2 > lng)) &&
         (lat < (lat2 - lat1) * (lng - lng1) / (lng2 - lng1) + lat1)
+      
       if (intersect) inside = !inside
     }
     
@@ -109,7 +143,8 @@ class RouteRestrictionChecker {
   lineIntersectsPolygon(point1, point2, polygon) {
     const coords = polygon.coordinates
     
-    if (this.isPointInPolygon(point1, polygon) || this.isPointInPolygon(point2, polygon)) {
+    if (this.isPointInPolygon(point1, polygon) || 
+        this.isPointInPolygon(point2, polygon)) {
       return true
     }
     
@@ -137,6 +172,33 @@ class RouteRestrictionChecker {
     return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1
   }
 
+  getPolygonsForMap() {
+    return this.restrictedPolygons.map(p => p.coordinates)
+  }
+
+  checkDirectPath(point1, point2) {
+    const violations = []
+    
+    for (const polygon of this.restrictedPolygons) {
+      if (this.lineIntersectsPolygon(point1, point2, polygon)) {
+        violations.push({
+          segmentStart: point1,
+          segmentEnd: point2,
+          polygonId: polygon.id
+        })
+      }
+    }
+    
+    return {
+      hasViolation: violations.length > 0,
+      violations
+    }
+  }
+
+  /**
+   * Enhanced route intersection check with detailed violation info
+   * Checks every segment of the route for polygon intersections
+   */
   checkRouteIntersection(routeCoordinates) {
     const violations = []
     
@@ -166,424 +228,218 @@ class RouteRestrictionChecker {
     const [lat1, lng1] = point1
     const [lat2, lng2] = point2
     const R = 6371
+
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLng = ((lng2 - lng1) * Math.PI) / 180
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2)
+              Math.cos((lat1 * Math.PI) / 180) * 
+              Math.cos((lat2 * Math.PI) / 180) * 
+              Math.sin(dLng / 2) * Math.sin(dLng / 2)
+
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
   }
 
-  // Generate cache key for route
-  getRouteCacheKey(waypoints) {
-    return waypoints.map(p => `${p[0].toFixed(6)},${p[1].toFixed(6)}`).join('|')
-  }
-
-  async testPathWithOSRM(waypoints, useCache = true) {
-    const cacheKey = this.getRouteCacheKey(waypoints)
-    
-    // Check cache first
-    if (useCache && this.routeCache.has(cacheKey)) {
-      return this.routeCache.get(cacheKey)
-    }
-    
+  /**
+   * Tests a path using OSRM and validates it doesn't intersect restricted areas
+   * Returns route validity, violation count, and actual route coordinates
+   */
+  async testPathWithOSRM(waypoints) {
     try {
       const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';')
       const url = `https://router.project-osrm.org/route/v1/driving/${waypointString}?geometries=geojson&overview=full`
-      const response = await fetch(url)
       
-      if (!response.ok) {
-        const result = { valid: false, error: 'OSRM failed' }
-        this.routeCache.set(cacheKey, result)
-        return result
-      }
+      const response = await fetch(url)
+      if (!response.ok) return { valid: false, error: 'OSRM failed' }
       
       const data = await response.json()
       if (!data.routes || data.routes.length === 0) {
-        const result = { valid: false, error: 'No route found' }
-        this.routeCache.set(cacheKey, result)
-        return result
+        return { valid: false, error: 'No route found' }
       }
       
       const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]])
       const check = this.checkRouteIntersection(routeCoords)
       
-      const result = {
-        valid: !check.hasViolation,
+      return { 
+        valid: !check.hasViolation, 
         violations: check.violations.length,
         routeCoords,
-        distance: data.routes[0].distance
+        distance: data.routes[0].distance,
+        duration: data.routes[0].duration
       }
-      
-      this.routeCache.set(cacheKey, result)
-      return result
     } catch (error) {
       console.error('OSRM test error:', error)
-      const result = { valid: false, error: error.message }
-      this.routeCache.set(cacheKey, result)
-      return result
+      return { valid: false, error: error.message }
     }
   }
 
-  // Smart waypoint filtering - eliminate waypoints that create backward paths
-  filterViableWaypoints(startPoint, endPoint, allWaypoints, isEastbound) {
-    const [startLat, startLng] = startPoint
-    const [endLat, endLng] = endPoint
-    
-    const buffer = 0.025
-    const minLng = Math.min(startLng, endLng) - buffer
-    const maxLng = Math.max(startLng, endLng) + buffer
-    const minLat = Math.min(startLat, endLat) - buffer
-    const maxLat = Math.max(startLat, endLat) + buffer
-    
-    // Filter waypoints in corridor
-    let viable = allWaypoints.filter(wp => 
-      wp.lng >= minLng && wp.lng <= maxLng &&
-      wp.lat >= minLat && wp.lat <= maxLat
-    )
-    
-    // Pre-filter waypoints that would cause excessive backtracking
-    viable = viable.filter(wp => {
-      const wpPoint = [wp.lat, wp.lng]
-      const distToStart = this.calculateDistance(startPoint, wpPoint)
-      const distToEnd = this.calculateDistance(wpPoint, endPoint)
-      const directDist = this.calculateDistance(startPoint, endPoint)
-      
-      // Reject if detour is too extreme (>3x direct distance)
-      return (distToStart + distToEnd) < (directDist * 3)
-    })
-    
-    // Sort by longitude
-    return viable.sort((a, b) => a.lng - b.lng)
-  }
+  /**
+   * ENHANCED OPTIMAL WAYPOINT FINDER WITH TARGETED BEAM SEARCH
+   * Uses violations to prioritize waypoints near problem areas
+   * Sorts waypoints by longitude based on travel direction
+   * Beam search for efficient multi-waypoint combinations up to 6
+   */
+/**
+   * Finds the optimal, restriction-free path by treating all waypoints
+   * as a graph and finding the lowest-cost path using Dijkstra's algorithm.
+   *
+   * This is smarter, more flexible, and replaces the complex combination-testing logic.
+   *
+   * @param {number[]} startPoint - [lat, lng]
+   * @param {number[]} endPoint - [lat, lng]
+   * @returns {Promise<number[][]>} A promise that resolves to the array of 
+   * optimal intermediate waypoints [[lat, lng], ...].
+   */
+  async findOptimalWaypoints(startPoint, endPoint) {
+    console.log('\n=== GRAPH-BASED ROUTE OPTIMIZATION (DIJKSTRA) ===')
+    console.log('🔍 Finding optimal path...')
 
-  // Check if waypoint sequence makes geometric sense
-  isSequenceViable(waypoints, startPoint, endPoint, isEastbound) {
-    if (waypoints.length === 0) return true
-    
-    const allPoints = [startPoint, ...waypoints, endPoint]
-    
-    // Check for excessive backtracking
-    for (let i = 0; i < allPoints.length - 1; i++) {
-      const current = allPoints[i]
-      const next = allPoints[i + 1]
-      
-      // If eastbound, longitude should generally increase
-      // Allow some tolerance for necessary detours
-      if (isEastbound && next[1] < current[1] - 0.01) {
-        return false
-      }
-      if (!isEastbound && next[1] > current[1] + 0.01) {
-        return false
-      }
-    }
-    
-    return true
-  }
+    // 1. Define all nodes in our graph
+    const safeWaypoints = [
+      ...this.northWaypoints,
+      ...this.southWaypoints
+    ].filter(wp => wp.isSafe !== false)
 
-  // A* inspired heuristic scoring
-  scoreWaypointPath(waypoints, startPoint, endPoint) {
-    if (waypoints.length === 0) return 0
+    const allNodes = [
+      { id: 'start', point: startPoint, name: 'Start' },
+      { id: 'end', point: endPoint, name: 'End' },
+      ...safeWaypoints.map(wp => ({
+        id: wp.id,
+        point: [wp.lat, wp.lng],
+        name: wp.name
+      }))
+    ]
     
-    let totalDist = 0
-    const allPoints = [startPoint, ...waypoints, endPoint]
+    // Helper map to get node data by ID
+    const nodeMap = new Map(allNodes.map(n => [n.id, n]))
     
-    for (let i = 0; i < allPoints.length - 1; i++) {
-      totalDist += this.calculateDistance(allPoints[i], allPoints[i + 1])
-    }
-    
-    const directDist = this.calculateDistance(startPoint, endPoint)
-    
-    // Score: prefer shorter total distances and fewer waypoints
-    return totalDist / directDist + (waypoints.length * 0.1)
-  }
+    // 2. Build the graph by finding the "cost" between all pairs of nodes
+    const adjacencyList = new Map(allNodes.map(n => [n.id, []]))
+    const VIOLATION_PENALTY = 1000000 // 1,000,000 meters (1000 km)
+    const osrmPromises = []
 
-  async findOptimalWaypoints(startPoint, endPoint, violations) {
-    console.log('\n=== OPTIMIZED WAYPOINT ROUTING ===')
-    
-    const startSide = this.getPointSide(startPoint)
-    const endSide = this.getPointSide(endPoint)
-    const [startLat, startLng] = startPoint
-    const [endLat, endLng] = endPoint
-    const isEastbound = endLng > startLng
-    
-    console.log(`Start: ${startSide} (${startLng.toFixed(4)}) | End: ${endSide} (${endLng.toFixed(4)})`)
-    console.log(`Direction: ${isEastbound ? 'EAST' : 'WEST'}`)
-    
-    let bestRoute = {
-      waypoints: null,
-      violations: Infinity,
-      description: '',
-      distance: Infinity
-    }
-    
-    const updateBest = (test, wps, desc) => {
-      if (!test || test.violations === undefined) return
-      
-      const isBetter = test.violations < bestRoute.violations ||
-        (test.violations === bestRoute.violations && test.distance < bestRoute.distance)
-      
-      if (isBetter) {
-        bestRoute = {
-          waypoints: wps,
-          violations: test.violations,
-          description: desc,
-          distance: test.distance,
-          routeCoords: test.routeCoords
-        }
-        const wpNames = wps.map((wp, i) => {
-          const match = [...this.northWaypoints, ...this.southWaypoints].find(
-            w => Math.abs(w.lat - wp[0]) < 0.0001 && Math.abs(w.lng - wp[1]) < 0.0001
-          )
-          return match ? match.id : `WP${i}`
-        }).join('→')
-        console.log(`🏆 ${desc}: ${wpNames} (${test.violations} violations, ${(test.distance/1000).toFixed(1)}km)`)
-      }
-    }
-    
-    // Test direct path
-    console.log('\n--- Testing direct path ---')
-    const directTest = await this.testPathWithOSRM([startPoint, endPoint])
-    if (directTest.valid) {
-      console.log('✅ Direct path is clear!')
-      return []
-    }
-    updateBest(directTest, [], 'Direct')
-    
-    // Get filtered waypoints
-    const allNorth = this.filterViableWaypoints(startPoint, endPoint, this.northWaypoints, isEastbound)
-    const allSouth = this.filterViableWaypoints(startPoint, endPoint, this.southWaypoints, isEastbound)
-    
-    console.log(`\nViable waypoints - North: ${allNorth.length}, South: ${allSouth.length}`)
-    
-    let testCount = 0
-    const maxTests = 200 // Reduced since we're smarter about selection
-    
-    // Priority queue: test most promising combinations first
-    const testQueue = []
-    
-    // Generate candidates with heuristic scores
-    const addCandidate = (wps, desc) => {
-      if (!this.isSequenceViable(wps, startPoint, endPoint, isEastbound)) return
-      const score = this.scoreWaypointPath(wps, startPoint, endPoint)
-      testQueue.push({ wps, score, desc })
-    }
-    
-    // PHASE 1: Single waypoints
-    console.log('\n--- Phase 1: Single waypoint ---')
-    for (const wp of [...allNorth, ...allSouth]) {
-      addCandidate([[wp.lat, wp.lng]], '1wp')
-    }
-    
-    // Sort by score and test best candidates
-    testQueue.sort((a, b) => a.score - b.score)
-    
-    for (const candidate of testQueue.slice(0, Math.min(30, testQueue.length))) {
-      if (testCount++ > maxTests) break
-      const test = await this.testPathWithOSRM([startPoint, ...candidate.wps, endPoint])
-      updateBest(test, candidate.wps, candidate.desc)
-      if (test.valid) return candidate.wps
-    }
-    
-    // PHASE 2: Two waypoints - same side (strategic pairs)
-    console.log('\n--- Phase 2: Two waypoints (same side) ---')
-    testQueue.length = 0
-    
-    for (const sideWps of [allNorth, allSouth]) {
-      for (let i = 0; i < sideWps.length && i < 8; i++) {
-        for (let j = i + 1; j < sideWps.length && j < 10; j++) {
-          const wp1 = sideWps[i]
-          const wp2 = sideWps[j]
-          const wps = isEastbound 
-            ? [[wp1.lat, wp1.lng], [wp2.lat, wp2.lng]]
-            : [[wp2.lat, wp2.lng], [wp1.lat, wp1.lng]]
-          addCandidate(wps, '2wp-same')
-        }
-      }
-    }
-    
-    testQueue.sort((a, b) => a.score - b.score)
-    
-    for (const candidate of testQueue.slice(0, Math.min(40, testQueue.length))) {
-      if (testCount++ > maxTests) break
-      const test = await this.testPathWithOSRM([startPoint, ...candidate.wps, endPoint])
-      updateBest(test, candidate.wps, candidate.desc)
-      if (test.valid) return candidate.wps
-    }
-    
-    // PHASE 3: Mixed sides (limited strategic combinations)
-    console.log('\n--- Phase 3: Two waypoints (mixed) ---')
-    testQueue.length = 0
-    
-    const limitN = Math.min(allNorth.length, 6)
-    const limitS = Math.min(allSouth.length, 6)
-    
-    for (let i = 0; i < limitN; i++) {
-      for (let j = 0; j < limitS; j++) {
-        const wpN = [allNorth[i].lat, allNorth[i].lng]
-        const wpS = [allSouth[j].lat, allSouth[j].lng]
-        
-        addCandidate([wpN, wpS], '2wp-NS')
-        addCandidate([wpS, wpN], '2wp-SN')
-      }
-    }
-    
-    testQueue.sort((a, b) => a.score - b.score)
-    
-    for (const candidate of testQueue.slice(0, Math.min(30, testQueue.length))) {
-      if (testCount++ > maxTests) break
-      const test = await this.testPathWithOSRM([startPoint, ...candidate.wps, endPoint])
-      updateBest(test, candidate.wps, candidate.desc)
-      if (test.valid) return candidate.wps
-    }
-    
-    // PHASE 4: Three waypoints (highly selective)
-    console.log('\n--- Phase 4: Three waypoints (selective) ---')
-    testQueue.length = 0
-    
-    const limit3 = Math.min(4, allNorth.length, allSouth.length)
-    
-    for (let i = 0; i < limit3; i++) {
-      for (let j = i + 1; j < limit3; j++) {
-        for (let k = 0; k < limit3; k++) {
-          const wpN1 = [allNorth[i].lat, allNorth[i].lng]
-          const wpN2 = [allNorth[j].lat, allNorth[j].lng]
-          const wpS = [allSouth[k].lat, allSouth[k].lng]
+    for (let i = 0; i < allNodes.length; i++) {
+      for (let j = i + 1; j < allNodes.length; j++) {
+        const nodeA = allNodes[i]
+        const nodeB = allNodes[j]
+
+        // Create a function that, when called, will fetch the OSRM data.
+        // This lets us run them concurrently later.
+        osrmPromises.push(async () => {
+          const test = await this.testPathWithOSRM([nodeA.point, nodeB.point])
           
-          addCandidate([wpN1, wpN2, wpS], '3wp')
-          addCandidate([wpN1, wpS, wpN2], '3wp')
-          addCandidate([wpS, wpN1, wpN2], '3wp')
-        }
-      }
-    }
-    
-    testQueue.sort((a, b) => a.score - b.score)
-    
-    for (const candidate of testQueue.slice(0, Math.min(50, testQueue.length))) {
-      if (testCount++ > maxTests) break
-      const test = await this.testPathWithOSRM([startPoint, ...candidate.wps, endPoint])
-      updateBest(test, candidate.wps, candidate.desc)
-      if (test.valid) return candidate.wps
-    }
-    
-    console.log(`\n⚠️ No violation-free route found (tested ${testCount} combinations)`)
-    console.log(`📊 Best route: ${bestRoute.description} (${bestRoute.violations} violations)`)
-    
-    return bestRoute.waypoints || []
-  }
-
-  isPointInsideRestriction(point) {
-    for (const polygon of this.restrictedPolygons) {
-      if (this.isPointInPolygon(point, polygon)) {
-        return { inside: true, polygonId: polygon.id, polygon }
-      }
-    }
-    return { inside: false }
-  }
-
-  findNearestSafePoint(point, maxSearchRadius = 0.01) {
-    const check = this.isPointInsideRestriction(point)
-    if (!check.inside) {
-      return { point, adjusted: false }
-    }
-    
-    console.log(`⚠️ Point inside restricted area ${check.polygonId}`)
-    const [lat, lng] = point
-    const steps = 32
-    const radiusSteps = 30
-    
-    for (let r = 1; r <= radiusSteps; r++) {
-      const radius = (maxSearchRadius / radiusSteps) * r
-      
-      for (let i = 0; i < steps; i++) {
-        const angle = (2 * Math.PI * i) / steps
-        const testLat = lat + (radius * Math.cos(angle))
-        const testLng = lng + (radius * Math.sin(angle))
-        const testPoint = [testLat, testLng]
-        
-        if (!this.isPointInsideRestriction(testPoint).inside) {
-          const distanceKm = this.calculateDistance(point, testPoint)
-          console.log(`✅ Safe point ${(distanceKm * 1000).toFixed(0)}m away`)
-          return { point: testPoint, adjusted: true, originalPoint: point, distanceMoved: distanceKm }
-        }
-      }
-    }
-    
-    const side = this.getPointSide(point)
-    const waypoints = side === 'north' ? this.northWaypoints : this.southWaypoints
-    let closest = waypoints[0]
-    let minDist = this.calculateDistance(point, [closest.lat, closest.lng])
-    
-    for (const wp of waypoints) {
-      const dist = this.calculateDistance(point, [wp.lat, wp.lng])
-      if (dist < minDist) {
-        minDist = dist
-        closest = wp
-      }
-    }
-    
-    console.log(`🔄 Using waypoint: ${closest.name}`)
-    return { point: [closest.lat, closest.lng], adjusted: true, originalPoint: point, fallback: true, distanceMoved: minDist }
-  }
-
-  adjustRouteEndpoints(startPoint, endPoint) {
-    console.log('\n=== CHECKING ENDPOINTS ===')
-    const startResult = this.findNearestSafePoint(startPoint)
-    const endResult = this.findNearestSafePoint(endPoint)
-    
-    if (startResult.adjusted || endResult.adjusted) {
-      console.log('📍 Adjustments made')
-    } else {
-      console.log('✅ Both endpoints safe')
-    }
-    
-    return {
-      start: startResult.point,
-      end: endResult.point,
-      adjusted: startResult.adjusted || endResult.adjusted,
-      startAdjusted: startResult.adjusted,
-      endAdjusted: endResult.adjusted,
-      startOriginal: startPoint,
-      endOriginal: endPoint
-    }
-  }
-
-  getAllWaypointMarkers() {
-    return [...this.northWaypoints, ...this.southWaypoints].map(wp => ({
-      lat: wp.lat,
-      lng: wp.lng,
-      name: wp.name,
-      id: wp.id,
-      side: wp.id.startsWith('N') ? 'north' : 'south'
-    }))
-  }
-
-  getPolygonsForMap() {
-    return this.restrictedPolygons.map(p => p.coordinates)
-  }
-
-  buildWaypointString(startPoint, endPoint, waypoints) {
-    const allPoints = [startPoint, ...waypoints, endPoint]
-    return allPoints.map(p => `${p[1]},${p[0]}`).join(';')
-  }
-
-  checkDirectPath(point1, point2) {
-    const violations = []
-    
-    for (const polygon of this.restrictedPolygons) {
-      if (this.lineIntersectsPolygon(point1, point2, polygon)) {
-        violations.push({
-          segmentStart: point1,
-          segmentEnd: point2,
-          polygonId: polygon.id
+          // Cost is distance + a massive penalty for any violations
+          const cost = test.error ? 
+            Infinity : 
+            test.distance + (test.violations * VIOLATION_PENALTY)
+            
+          return {
+            from: nodeA.id,
+            to: nodeB.id,
+            cost: cost
+          }
         })
       }
     }
-    
-    return {
-      hasViolation: violations.length > 0,
-      violations
+
+    // Helper to run promises with a concurrency limit to avoid OSRM rate-limiting
+    async function runWithConcurrency(promiseFns, limit) {
+      const results = []
+      const executing = []
+      for (const pFn of promiseFns) {
+        const p = pFn().then(res => {
+          executing.splice(executing.indexOf(p), 1)
+          return res
+        })
+        executing.push(p)
+        results.push(p)
+        if (executing.length >= limit) {
+          await Promise.race(executing)
+        }
+      }
+      return Promise.all(results)
     }
+
+    console.log(`Building path graph: ${osrmPromises.length} segments to check...`)
+    const allEdges = await runWithConcurrency(osrmPromises, 10) // Concurrency of 10
+
+    // Populate the adjacency list with the costs
+    for (const edge of allEdges) {
+      if (edge.cost === Infinity) continue // Skip failed or invalid routes
+      adjacencyList.get(edge.from).push({ node: edge.to, cost: edge.cost })
+      adjacencyList.get(edge.to).push({ node: edge.from, cost: edge.cost })
+    }
+    console.log('✅ Graph built.')
+
+    // 3. Run Dijkstra's algorithm to find the shortest path
+    const distances = new Map()
+    const previous = new Map()
+    const pq = new Map() // Using a Map as a simple Priority Queue
+
+    allNodes.forEach(n => {
+      distances.set(n.id, Infinity)
+      pq.set(n.id, Infinity)
+    })
+
+    distances.set('start', 0)
+    pq.set('start', 0)
+
+    while (pq.size > 0) {
+      // Find the node with the smallest distance in the "queue"
+      let minCost = Infinity
+      let currentId = null
+      for (const [id, cost] of pq.entries()) {
+        if (cost < minCost) {
+          minCost = cost
+          currentId = id
+        }
+      }
+
+      if (currentId === null) break // No path
+      pq.delete(currentId) // "Remove" from queue
+      
+      if (currentId === 'end') {
+        console.log('🏁 Path found!')
+        break // We found the shortest path to the end
+      }
+
+      for (const neighbor of adjacencyList.get(currentId)) {
+        const newCost = distances.get(currentId) + neighbor.cost
+        
+        if (newCost < distances.get(neighbor.node)) {
+          distances.set(neighbor.node, newCost)
+          previous.set(neighbor.node, currentId)
+          pq.set(neighbor.node, newCost) // Update priority in queue
+        }
+      }
+    }
+
+    // 4. Reconstruct the path
+    const totalCost = distances.get('end')
+    
+    if (totalCost === Infinity || totalCost >= VIOLATION_PENALTY) {
+      console.log('❌ No safe route found.')
+      console.log('========================================\n')
+      // Fallback: return the direct path (no waypoints)
+      return []
+    }
+
+    const pathIds = []
+    let currentId = 'end'
+    while (currentId !== 'start') {
+      pathIds.unshift(currentId)
+      currentId = previous.get(currentId)
+    }
+
+    // We only want the *intermediate* waypoints, not 'start' or 'end'
+    const waypointIds = pathIds.filter(id => id !== 'start' && id !== 'end')
+    const finalWaypoints = waypointIds.map(id => nodeMap.get(id).point)
+    const pathNames = waypointIds.map(id => nodeMap.get(id).name).join(' -> ')
+
+    console.log(`🏆 Optimal Path: Start -> ${pathNames.length > 0 ? pathNames : '(direct)'} -> End`)
+    console.log(`   Distance: ${(totalCost / 1000).toFixed(1)}km`)
+    console.log('========================================\n')
+
+    return finalWaypoints
   }
 
   getInterpolatedHighwayLat(lng) {
@@ -612,24 +468,158 @@ class RouteRestrictionChecker {
     return p1[1] + (latDiff * ratio)
   }
 
+  buildWaypointString(startPoint, endPoint, waypoints) {
+    const allPoints = [startPoint, ...waypoints, endPoint]
+    return allPoints.map(p => `${p[1]},${p[0]}`).join(';')
+  }
+
+  getAllWaypointMarkers() {
+    return [...this.northWaypoints, ...this.southWaypoints].map(wp => ({
+      lat: wp.lat,
+      lng: wp.lng,
+      name: wp.name,
+      id: wp.id,
+      side: wp.id.startsWith('N') ? 'north' : 'south',
+      isSafe: wp.isSafe
+    }))
+  }
+
   analyzeRoute(startPoint, endPoint) {
     console.log('\n=== ROUTE ANALYSIS ===')
     console.log('Start:', startPoint, `(${this.getPointSide(startPoint)} side)`)
     console.log('End:', endPoint, `(${this.getPointSide(endPoint)} side)`)
     console.log('=====================\n')
   }
-  
-  // Clear cache if needed (useful for testing or memory management)
-  clearCache() {
-    this.routeCache.clear()
-    console.log('Route cache cleared')
+
+  /**
+   * Check if a point is inside any restricted polygon
+   * Returns the first polygon containing the point, or indicates safe
+   */
+  isPointInsideRestriction(point) {
+    for (const polygon of this.restrictedPolygons) {
+      if (this.isPointInPolygon(point, polygon)) {
+        return {
+          inside: true,
+          polygonId: polygon.id,
+          polygon: polygon
+        }
+      }
+    }
+    return { inside: false }
   }
-  
-  // Get cache statistics
-  getCacheStats() {
+
+  /**
+   * ENHANCED SAFE POINT FINDER
+   * Uses multi-directional radial search to find nearest point outside restrictions
+   */
+  findNearestSafePoint(point, maxSearchRadius = 0.01) {
+    // If point is already safe, return it
+    const check = this.isPointInsideRestriction(point)
+    if (!check.inside) {
+      return { point, adjusted: false }
+    }
+
+    console.log(`⚠️ Point ${point} is inside restricted area ${check.polygonId}`)
+    console.log('🔍 Searching for nearest safe point...')
+
+    const [lat, lng] = point
+    const steps = 32
+    const radiusSteps = 30
+
+    // RADIAL SEARCH
+    for (let r = 1; r <= radiusSteps; r++) {
+      const radius = (maxSearchRadius / radiusSteps) * r
+
+      for (let i = 0; i < steps; i++) {
+        const angle = (2 * Math.PI * i) / steps
+        const testLat = lat + (radius * Math.cos(angle))
+        const testLng = lng + (radius * Math.sin(angle))
+        const testPoint = [testLat, testLng]
+
+        const testCheck = this.isPointInsideRestriction(testPoint)
+        if (!testCheck.inside) {
+          const distanceKm = this.calculateDistance(point, testPoint)
+          console.log(`✅ Found safe point ${(distanceKm * 1000).toFixed(0)}m away: ${testPoint}`)
+          return { 
+            point: testPoint, 
+            adjusted: true,
+            originalPoint: point,
+            distanceMoved: distanceKm
+          }
+        }
+      }
+    }
+
+    // FALLBACK: Use nearest safe waypoint
+    console.log('⚠️ No safe point in radial search, trying waypoints...')
+    const side = this.getPointSide(point)
+    const sameWaypoints = side === 'north' ? this.northWaypoints : this.southWaypoints
+    const oppositeWaypoints = side === 'north' ? this.southWaypoints : this.northWaypoints
+    
+    const allWaypoints = [...sameWaypoints, ...oppositeWaypoints].filter(wp => wp.isSafe)
+    
+    if (allWaypoints.length === 0) {
+      console.error('❌ No safe waypoints available!')
+      return { point, adjusted: false, error: 'No safe waypoints' }
+    }
+    
+    let closestWp = allWaypoints[0]
+    let minDist = this.calculateDistance(point, [allWaypoints[0].lat, allWaypoints[0].lng])
+    
+    for (const wp of allWaypoints) {
+      const dist = this.calculateDistance(point, [wp.lat, wp.lng])
+      if (dist < minDist) {
+        minDist = dist
+        closestWp = wp
+      }
+    }
+    
+    const fallbackPoint = [closestWp.lat, closestWp.lng]
+    console.log(`🔄 Using waypoint fallback: ${closestWp.name} (${(minDist * 1000).toFixed(0)}m away)`)
+    
     return {
-      size: this.routeCache.size,
-      entries: Array.from(this.routeCache.keys())
+      point: fallbackPoint,
+      adjusted: true,
+      originalPoint: point,
+      fallback: true,
+      distanceMoved: minDist
+    }
+  }
+
+  /**
+   * ENDPOINT ADJUSTER
+   * Automatically moves route start/end points outside restricted areas
+   */
+  adjustRouteEndpoints(startPoint, endPoint) {
+    console.log('\n=== CHECKING ROUTE ENDPOINTS ===')
+    
+    const startResult = this.findNearestSafePoint(startPoint)
+    const endResult = this.findNearestSafePoint(endPoint)
+    
+    const adjusted = startResult.adjusted || endResult.adjusted
+    
+    if (adjusted) {
+      console.log('📍 Endpoint adjustments made:')
+      if (startResult.adjusted) {
+        console.log(`  Start: moved ${(startResult.distanceMoved * 1000).toFixed(0)}m`)
+      }
+      if (endResult.adjusted) {
+        console.log(`  End: moved ${(endResult.distanceMoved * 1000).toFixed(0)}m`)
+      }
+    } else {
+      console.log('✅ Both endpoints are safe')
+    }
+    
+    console.log('================================\n')
+    
+    return {
+      start: startResult.point,
+      end: endResult.point,
+      adjusted,
+      startAdjusted: startResult.adjusted,
+      endAdjusted: endResult.adjusted,
+      startOriginal: startPoint,
+      endOriginal: endPoint
     }
   }
 }
