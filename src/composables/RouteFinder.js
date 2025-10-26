@@ -1,7 +1,10 @@
 import { supabase } from '@/composables/useSupabase'
 import RouteRestrictionChecker from '@/utils/RouteRestrictionChecker'
+import FastRouteRestrictionChecker from '@/utils/FastRouteRestrictionChecker'
 import { restrictedPolyGeoJSON } from '@/utils/restrictedPolyData.js'
+import Ors  from "openrouteservice-js";
 
+// Usage same as above
 
 import greenIcon from '@/assets/green_icon.ico'
 import redIcon from '@/assets/red_icon.ico'
@@ -18,9 +21,14 @@ export class RouteFinder {
     this.retryDelay = 1000
     this.loadedTerminals = []
     this.terminalCache = new Map()
-    this.restrictionChecker = new RouteRestrictionChecker(restrictedPolyGeoJSON)
+    this.restrictionChecker = new FastRouteRestrictionChecker(restrictedPolyGeoJSON)
      this.connectivityGraphCache = new Map()
      this.maxPathsToEvaluate = 10 
+
+     this.openRouteService = new Ors.Directions({
+      api_key: '5b3ce3597851110001cf62481cc8343cfad84cc5960086b346336c5e', 
+
+    });
 
      const PERFORMANCE_CONFIG = {
       MAX_PATHS_TO_EVALUATE: 10,
@@ -947,34 +955,34 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
     }
   }
 
-  async searchPlaces(query) {
-    if (!query.trim()) return []
+  // async searchPlaces(query) {
+  //   if (!query.trim()) return []
 
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}+Butuan&format=json&limit=10`
-      )
+  //   for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+  //     try {
+  //      const response = await fetch(
+  //       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}+Butuan&format=json&limit=10`
+  //     )
 
-        if (!response.ok) throw new Error('Search API failed')
+  //       if (!response.ok) throw new Error('Search API failed')
         
-        const data = await response.json()
-        return data.map(place => ({
-          name: place.display_name,
-          lat: parseFloat(place.lat),
-          lng: parseFloat(place.lon)
-        }))
-      } catch (error) {
-        if (attempt === this.maxRetries) {
-          console.error('Error fetching places after retries:', error)
-          return this.butuanPlaces.filter(place => 
-            place.name.toLowerCase().includes(query.toLowerCase())
-          )
-        }
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
-      }
-    }
-  }
+  //       const data = await response.json()
+  //       return data.map(place => ({
+  //         name: place.display_name,
+  //         lat: parseFloat(place.lat),
+  //         lng: parseFloat(place.lon)
+  //       }))
+  //     } catch (error) {
+  //       if (attempt === this.maxRetries) {
+  //         console.error('Error fetching places after retries:', error)
+  //         return this.butuanPlaces.filter(place => 
+  //           place.name.toLowerCase().includes(query.toLowerCase())
+  //         )
+  //       }
+  //       await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
+  //     }
+  //   }
+  // }
 
   async calculateRoutes(startCoords, destinationCoords) {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -1013,26 +1021,26 @@ calculateMultiTransferRoute(startPoint, endPoint, zonePath, isDiscounted = false
     }
   }
 
-  async reverseGeocode(lat, lng) {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-      )
+  // async reverseGeocode(lat, lng) {
+  //   for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+  //     try {
+  //       const response = await fetch(
+  //       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+  //     )
 
-        if (!response.ok) throw new Error('Reverse geocode failed')
+  //       if (!response.ok) throw new Error('Reverse geocode failed')
         
-        const data = await response.json()
-        return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-      } catch (error) {
-        if (attempt === this.maxRetries) {
-          console.log('Reverse geocoding failed after retries, using coordinates')
-          return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-        }
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
-      }
-    }
-  }
+  //       const data = await response.json()
+  //       return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+  //     } catch (error) {
+  //       if (attempt === this.maxRetries) {
+  //         console.log('Reverse geocoding failed after retries, using coordinates')
+  //         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+  //       }
+  //       await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
+  //     }
+  //   }
+  // }
 
   // Debugging and visualization helpers
   debugZoneConnections() {
@@ -1269,31 +1277,20 @@ async calculateRouteWithWaypoints(waypoints) {
 }
 
 
-//RouteFinder new clas
+//
 
-// Update your calculateRouteAvoidingRestrictions method
 
-async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
+
+ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
   const maxAttempts = 2
-  
-  // Reset best route tracker
   this.bestRouteAttempt = null
   
-  // STEP 1: Check and adjust endpoints if inside restricted areas
+  // STEP 1: Check and adjust endpoints
   let adjustedEndpoints = { start: startCoords, end: destinationCoords, adjusted: false }
   if (this.restrictionChecker) {
-    adjustedEndpoints = this.restrictionChecker.adjustRouteEndpoints(
-      startCoords, 
-      destinationCoords
-    )
-    
-    // If endpoints were adjusted, notify (you can show this in UI)
-    if (adjustedEndpoints.adjusted) {
-      console.log('🔄 Route endpoints adjusted to avoid restricted areas')
-    }
+    adjustedEndpoints = this.restrictionChecker.adjustRouteEndpoints(startCoords, destinationCoords)
   }
   
-  // Use adjusted coordinates for routing
   const routeStart = adjustedEndpoints.start
   const routeEnd = adjustedEndpoints.end
   
@@ -1301,53 +1298,38 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
     try {
       console.log(`\n--- Route Calculation Attempt ${attempt} ---`)
       
-      // First try: Direct route
       let routeData
       if (attempt === 1) {
-        console.log('Trying direct route...')
+        console.log('🛣️ Attempt 1: Trying direct route...')
         routeData = await this.calculateDirectRoute(routeStart, routeEnd)
       } else {
-        // Use waypoints from previous violation detection
-        console.log('Trying waypoint-based route...')
-        routeData = await this.calculateWaypointRoute(
-          routeStart, 
-          routeEnd, 
-          this.lastViolations
-        )
+        console.log('📍 Attempt 2: Trying waypoint-based route...')
+        routeData = await this.calculateWaypointRoute(routeStart, routeEnd, this.lastViolations)
       }
       
       if (!routeData.success) {
         throw new Error('Route calculation failed')
       }
       
-      // Check for restricted area violations
-      const violationCheck = this.restrictionChecker.checkRouteIntersection(
-        routeData.coordinates
-      )
-      
-      console.log(`Violations found: ${violationCheck.violations.length}`)
+      // Check for violations
+      const violationCheck = this.restrictionChecker.checkRouteIntersection(routeData.coordinates)
+      console.log(`🔍 Violations found: ${violationCheck.violations.length}`)
       
       if (!violationCheck.hasViolation) {
         console.log('✅ Route is clear of restricted areas')
         return {
           ...routeData,
-          routeType: attempt === 1 ? 'direct' : 'waypoint',
+          routeType: attempt === 1 ? 'direct' : 'waypoint-optimized', // Updated
           waypointsUsed: routeData.waypoints || [],
-          // Include adjustment info
           endpointsAdjusted: adjustedEndpoints.adjusted,
-          originalStart: adjustedEndpoints.adjusted ? startCoords : null,
-          originalEnd: adjustedEndpoints.adjusted ? destinationCoords : null,
-          adjustedStart: adjustedEndpoints.startAdjusted ? routeStart : null,
-          adjustedEnd: adjustedEndpoints.endAdjusted ? routeEnd : null,
           violationCount: 0
         }
       }
       
-      // Store violations for next attempt
       this.lastViolations = violationCheck.violations
       console.log(`⚠️ Route intersects ${violationCheck.violations.length} restricted area(s)`)
       
-      // Track best route (least violations)
+      // Track best route
       if (!this.bestRouteAttempt || violationCheck.violations.length < this.bestRouteAttempt.violationCount) {
         this.bestRouteAttempt = {
           ...routeData,
@@ -1355,22 +1337,16 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
           violations: violationCheck.violations,
           attempt: attempt
         }
-        console.log(`🏆 New best route: ${violationCheck.violations.length} violations (attempt ${attempt})`)
       }
       
       if (attempt === maxAttempts) {
-        console.log('❌ Unable to find safe route after all attempts')
-        console.log(`📊 Returning best route: ${this.bestRouteAttempt.violationCount} violations`)
-        
-        // Return the best attempt found
+        console.log('📊 Returning best route with violations')
         return {
           ...this.bestRouteAttempt,
           routeType: 'best-effort',
           hasRestrictionViolation: true,
-          warning: `Route has ${this.bestRouteAttempt.violationCount} restricted area crossings (best available)`,
-          endpointsAdjusted: adjustedEndpoints.adjusted,
-          originalStart: adjustedEndpoints.adjusted ? startCoords : null,
-          originalEnd: adjustedEndpoints.adjusted ? destinationCoords : null
+          warning: `Route has ${this.bestRouteAttempt.violationCount} restricted area crossings`,
+          endpointsAdjusted: adjustedEndpoints.adjusted
         }
       }
       
@@ -1387,57 +1363,207 @@ async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
           endpointsAdjusted: adjustedEndpoints.adjusted
         }
       }
-      await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
     }
   }
 }
 
 
-
-// Route with waypoints to avoid restrictions
+// SOLUTION 1: Force waypoints by splitting into multiple route segments
 async calculateWaypointRoute(startCoords, destinationCoords, violations) {
-  console.log('Finding optimal waypoints...')
+  console.log('🚀 Finding optimal waypoints with forced routing...');
   
   // Get optimal waypoints
   const waypoints = await this.restrictionChecker.findOptimalWaypoints(
     startCoords, 
     destinationCoords,
     violations
-  )
+  );
   
-  console.log(`Using ${waypoints.length} waypoint(s):`, waypoints)
+  console.log(`📍 Using ${waypoints.length} waypoint(s):`, waypoints);
   
-  // Build waypoint string for OSRM
-  const waypointString = this.restrictionChecker.buildWaypointString(
-    startCoords,
-    destinationCoords,
-    waypoints
-  )
-  
-  const url = `https://router.project-osrm.org/route/v1/driving/${waypointString}?geometries=geojson&overview=full`
-  
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  if (waypoints.length === 0) {
+    console.log('⚠️ No waypoints found, falling back to direct route');
+    return await this.calculateDirectRoute(startCoords, destinationCoords);
+  }
 
-  const data = await response.json()
-  if (data.routes && data.routes.length > 0) {
-    const route = data.routes[0]
+  // Build segments: Start → WP1 → WP2 → ... → End
+  const allPoints = [
+    startCoords,
+    ...waypoints,
+    destinationCoords
+  ];
+  
+  console.log(`🔗 Splitting route into ${allPoints.length - 1} segments to FORCE waypoint usage`);
+
+  try {
+    // Route each segment separately to guarantee waypoints are used
+    const segments = [];
+    let totalDistance = 0;
+    let totalDuration = 0;
+    let allCoordinates = [];
+    
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const segmentStart = allPoints[i];
+      const segmentEnd = allPoints[i + 1];
+      
+      console.log(`   🛣️ Segment ${i + 1}: [${segmentStart[0].toFixed(4)}, ${segmentStart[1].toFixed(4)}] → [${segmentEnd[0].toFixed(4)}, ${segmentEnd[1].toFixed(4)}]`);
+      
+      // Route this segment
+      const segmentRoute = await this.routeSegment(segmentStart, segmentEnd);
+      
+      if (!segmentRoute.success) {
+        throw new Error(`Segment ${i + 1} routing failed`);
+      }
+      
+      segments.push(segmentRoute);
+      totalDistance += parseFloat(segmentRoute.distance);
+      totalDuration += segmentRoute.duration;
+      
+      // Merge coordinates (skip first point of subsequent segments to avoid duplicates)
+      if (i === 0) {
+        allCoordinates.push(...segmentRoute.coordinates);
+      } else {
+        allCoordinates.push(...segmentRoute.coordinates.slice(1));
+      }
+      
+      console.log(`      ✅ Segment ${i + 1}: ${segmentRoute.distance}km, ${segmentRoute.duration}min`);
+    }
+    
+    console.log(`✅ Multi-segment waypoint route successful:`);
+    console.log(`   📏 Total Distance: ${totalDistance.toFixed(2)}km`);
+    console.log(`   ⏱️ Total Duration: ${totalDuration}min`);
+    console.log(`   📍 Waypoints FORCED: ${waypoints.length}`);
+    console.log(`   🛣️ Total Route points: ${allCoordinates.length}`);
+
     return {
-      coordinates: route.geometry.coordinates.map(coord => [coord[1], coord[0]]),
-      distance: (route.distance / 1000).toFixed(2),
-      duration: Math.round(route.duration / 60),
+      coordinates: allCoordinates,
+      distance: totalDistance.toFixed(2),
+      duration: totalDuration,
       success: true,
       waypoints: waypoints.map((wp, idx) => ({
         lat: wp[0],
         lng: wp[1],
-        index: idx + 1
-      }))
-    }
+        index: idx + 1,
+        name: this.getWaypointName(wp)
+      })),
+      routeType: 'waypoint-forced-segments',
+      segmentCount: segments.length,
+      waypointsRespected: true // Guaranteed by segment routing
+    };
+    
+  } catch (error) {
+    console.error('❌ Multi-segment routing error:', error);
+    console.log('🔄 Falling back to direct route');
+    return await this.calculateDirectRoute(startCoords, destinationCoords);
   }
-  throw new Error('No waypoint route found')
 }
 
-// Keep your original calculateRoute as fallback
+// Route a single segment using ORS
+async routeSegment(startCoords, endCoords) {
+  const coordinates = [
+    [startCoords[1], startCoords[0]], // [lng, lat]
+    [endCoords[1], endCoords[0]]      // [lng, lat]
+  ];
+
+  try {
+    const response = await this.openRouteService.calculate({
+      coordinates: coordinates,
+      profile: 'driving-car',
+      format: 'geojson',
+      preference: 'recommended'
+    });
+
+    if (response && response.features && response.features.length > 0) {
+      const route = response.features[0];
+      const properties = route.properties;
+      const geometry = route.geometry;
+      
+      // Convert to [lat, lng] for Leaflet
+      const routeCoordinates = geometry.coordinates.map(coord => [coord[1], coord[0]]);
+      
+      return {
+        coordinates: routeCoordinates,
+        distance: (properties.segments[0].distance / 1000).toFixed(2),
+        duration: Math.round(properties.segments[0].duration / 60),
+        success: true
+      };
+    } else {
+      throw new Error('No route found for segment');
+    }
+  } catch (error) {
+    console.error('❌ Segment routing error:', error);
+    return {
+      coordinates: [startCoords, endCoords],
+      distance: 0,
+      duration: 0,
+      success: false
+    };
+  }
+}
+
+// Helper method to convert violations to OpenRouteService avoid features
+getAvoidFeatures(violations) {
+  const avoidFeatures = [];
+  
+  if (violations && violations.length > 0) {
+    violations.forEach(violation => {
+      switch(violation.type) {
+        case 'tunnel':
+          avoidFeatures.push('tunnels');
+          break;
+        case 'bridge':
+          avoidFeatures.push('bridges');
+          break;
+        case 'highway':
+          avoidFeatures.push('highways');
+          break;
+        case 'ferry':
+          avoidFeatures.push('ferries');
+          break;
+        case 'unpaved':
+          avoidFeatures.push('unpavedroads');
+          break;
+        case 'toll':
+          avoidFeatures.push('tollways');
+          break;
+        // Add more violation types as needed
+      }
+    });
+  }
+  
+  console.log(`🚫 Avoiding features:`, avoidFeatures);
+  return avoidFeatures;
+}
+// Add these helper methods to your RouteFinder class
+findDistanceToNearestRoutePoint(point, routeCoordinates) {
+  let minDistance = Infinity;
+  
+  routeCoordinates.forEach(routePoint => {
+    const distance = this.calculateDistance(point, routePoint);
+    if (distance < minDistance) {
+      minDistance = distance;
+    }
+  });
+  
+  return minDistance;
+}
+
+getWaypointName(waypoint) {
+  // Try to match waypoint with known waypoints from restriction checker
+  const allWaypoints = [
+    ...this.restrictionChecker.northWaypoints,
+    ...this.restrictionChecker.southWaypoints
+  ];
+  
+  const matched = allWaypoints.find(wp => 
+    Math.abs(wp.lat - waypoint[0]) < 0.001 && 
+    Math.abs(wp.lng - waypoint[1]) < 0.001
+  );
+  
+  return matched ? matched.name : 'Unknown Waypoint';
+}
+
+
 async calculateRoute(startCoords, destinationCoords) {
   // Use the new method if restriction checker is available
   if (this.restrictionChecker) {
@@ -1758,4 +1884,66 @@ async calculateRoute(startCoords, destinationCoords) {
     this.zoneConnectivity.clear()
     console.log('All caches cleared')
   }
+
+async reverseGeocode(lat, lng) {
+  for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9'
+          }
+        }
+      );
+
+      if (!response.ok) throw new Error('Reverse geocode failed');
+      
+      const data = await response.json();
+      return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    } catch (error) {
+      if (attempt === this.maxRetries) {
+        console.log('Reverse geocoding failed after retries, using coordinates');
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+      await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+    }
+  }
+}
+
+async searchPlaces(query) {
+  if (!query.trim()) return [];
+
+  for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}+Butuan&format=json&limit=10`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9'
+          }
+        }
+      );
+
+      if (!response.ok) throw new Error('Search API failed');
+      
+      const data = await response.json();
+      return data.map(place => ({
+        name: place.display_name,
+        lat: parseFloat(place.lat),
+        lng: parseFloat(place.lon)
+      }));
+    } catch (error) {
+      if (attempt === this.maxRetries) {
+        console.error('Error fetching places after retries:', error);
+        return this.butuanPlaces.filter(place => 
+          place.name.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+      await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+    }
+  }
+}
 }
