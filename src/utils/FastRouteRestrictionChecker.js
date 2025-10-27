@@ -140,53 +140,88 @@ class FastRouteRestrictionChecker {
     return list;
   }
 
-  async findOptimalWaypoints(startPoint, endPoint, violations = []) {
-    console.log('\n=== FAST ROUTE OPTIMIZATION ===');
-    console.log('🚀 Using precomputed graph with ZERO-VIOLATION requirement...');
+async findOptimalWaypoints(startPoint, endPoint, violations = []) {
+  console.log('\n=== FAST ROUTE OPTIMIZATION ===');
+  console.log('🚀 Using precomputed graph with ZERO-VIOLATION requirement...');
 
-    // Find multiple connection options for robustness
-    const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 5);
-    const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 5);
-    
-    if (startConnections.length === 0 || endConnections.length === 0) {
-      console.warn('⚠️ Could not find safe connections from start/end points');
-      return [];
-    }
+  // Find connections
+  const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 5);
+  const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 5);
+  
+  if (startConnections.length === 0 || endConnections.length === 0) {
+    console.warn('⚠️ Could not find safe connections from start/end points');
+    return [];
+  }
 
-    console.log(`   ✅ Start has ${startConnections.length} safe connections`);
-    console.log(`   ✅ End has ${endConnections.length} safe connections`);
+  console.log(`   ✅ Start has ${startConnections.length} safe connections`);
+  console.log(`   ✅ End has ${endConnections.length} safe connections`);
 
-    // Try multiple start-end combinations to find best path
-    let bestResult = { path: [], totalCost: Infinity, hopCount: Infinity };
-    
-    for (const startConn of startConnections.slice(0, 3)) {
-      for (const endConn of endConnections.slice(0, 3)) {
-        const enhancedList = this.buildEnhancedGraph(startPoint, endPoint, [startConn], [endConn]);
-        const result = this.runDijkstra(enhancedList, 'start', 'end');
+  // Try multiple start-end combinations
+  let bestResult = { path: [], totalCost: Infinity, hopCount: Infinity };
+  
+  for (const startConn of startConnections.slice(0, 3)) {
+    for (const endConn of endConnections.slice(0, 3)) {
+      const enhancedList = this.buildEnhancedGraph(startPoint, endPoint, [startConn], [endConn]);
+      const result = this.runDijkstra(enhancedList, 'start', 'end');
+      
+      // ⚠️ CRITICAL: Verify the complete path before accepting it
+      if (result.path.length > 0) {
+        const isPathSafe = await this.verifyCompletePath(startPoint, result.path, endPoint);
         
-        // Prefer fewer hops if costs are similar (within 20%)
-        const costDiff = (result.totalCost - bestResult.totalCost) / bestResult.totalCost;
-        if (result.totalCost < bestResult.totalCost || 
-            (Math.abs(costDiff) < 0.2 && result.hopCount < bestResult.hopCount)) {
-          bestResult = result;
+        if (isPathSafe) {
+          const costDiff = (result.totalCost - bestResult.totalCost) / bestResult.totalCost;
+          if (result.totalCost < bestResult.totalCost || 
+              (Math.abs(costDiff) < 0.2 && result.hopCount < bestResult.hopCount)) {
+            bestResult = result;
+          }
+        } else {
+          console.log(`      ❌ Path through ${result.path.map(p => this.findWaypointId(p)).join(' → ')} has violations in final segments`);
         }
       }
     }
-    
-    if (bestResult.path.length > 0) {
-      console.log(`🏆 Optimal violation-free path found!`);
-      console.log(`   📍 Waypoints: ${bestResult.path.length}`);
-      console.log(`   🔢 Hops: ${bestResult.hopCount}`);
-      console.log(`   📏 Total distance: ${(bestResult.totalCost / 1000).toFixed(2)}km`);
-      console.log(`   ⚡ Computation: Instant (precomputed)`);
-    } else {
-      console.log('❌ No violation-free path found in precomputed graph');
-    }
-    
-    console.log('========================================\n');
-    return bestResult.path;
   }
+  
+  if (bestResult.path.length > 0) {
+    console.log(`🏆 Optimal violation-free path found!`);
+    console.log(`   📍 Waypoints: ${bestResult.path.length}`);
+    console.log(`   🔢 Hops: ${bestResult.hopCount}`);
+    console.log(`   📏 Total distance: ${(bestResult.totalCost / 1000).toFixed(2)}km`);
+  } else {
+    console.log('❌ No violation-free path found');
+  }
+  
+  return bestResult.path;
+}
 
+// NEW METHOD: Verify the complete path including all segments
+async verifyCompletePath(startPoint, waypoints, endPoint) {
+  const fullPath = [startPoint, ...waypoints, endPoint];
+  
+  // Test each consecutive segment
+  for (let i = 0; i < fullPath.length - 1; i++) {
+    const segmentTest = await this.testPathWithOSRM([fullPath[i], fullPath[i + 1]]);
+    
+    if (segmentTest.violations > 0) {
+      const fromId = i === 0 ? 'START' : this.findWaypointId(fullPath[i]);
+      const toId = i === fullPath.length - 2 ? 'END' : this.findWaypointId(fullPath[i + 1]);
+      console.log(`      ❌ Segment ${fromId} → ${toId}: ${segmentTest.violations} violations`);
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Helper to find waypoint ID from coordinates
+findWaypointId(coords) {
+  for (const [id, node] of this.waypointMap.entries()) {
+    if (Math.abs(node.lat - coords[0]) < 0.00001 && 
+        Math.abs(node.lng - coords[1]) < 0.00001) {
+      return id;
+    }
+  }
+  return 'Unknown';
+}
   buildEnhancedGraph(startPoint, endPoint, startConnections, endConnections) {
     const enhancedList = new Map(this.adjacencyList);
     enhancedList.set('start', startConnections);
