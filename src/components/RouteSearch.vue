@@ -1,5 +1,3 @@
-//RouteSearch
-
 <template>
     <div>
 
@@ -453,8 +451,19 @@
                   @focus="setActiveField('start')"
                   type="text"
                   placeholder="Start location (click map or search)"
-                  class="w-full py-2 px-2 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200 outline-none"
+                  class="w-full py-2 px-2 pr-20 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200 outline-none"
                 />
+                <!-- Clear Button for Start Input -->
+                <button
+                  v-if="localStart"
+                  @click="clearInput('start')"
+                  class="absolute right-10 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear start location"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
                 <!-- Current Location Button for Desktop Start -->
                 <button
                   @click="getCurrentLocation"
@@ -490,21 +499,33 @@
                     my_location
                   </span>
                 </button>
-
               </div>
             </div>
 
             <!-- Destination -->
             <div class="flex items-center mb-2">
               <span class="material-icons text-orange-500 text-3xl z-10"> location_on </span>
-              <input
-                v-model="localDestination"
-                @input="handleInputChange($event.target.value, 'destination')"
-                @focus="setActiveField('destination')"
-                type="text"
-                placeholder="Destination (click map or search)"
-                class="ml-3 flex-1 py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200 outline-none"
-              />
+              <div class="relative flex-1 ml-3">
+                <input
+                  v-model="localDestination"
+                  @input="handleInputChange($event.target.value, 'destination')"
+                  @focus="setActiveField('destination')"
+                  type="text"
+                  placeholder="Destination (click map or search)"
+                  class="w-full py-2 px-2 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200 outline-none"
+                />
+                <!-- Clear Button for Destination Input -->
+                <button
+                  v-if="localDestination"
+                  @click="clearInput('destination')"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear destination"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -622,8 +643,19 @@
                   @focus="setActiveField('start')"
                   type="text"
                   placeholder="Start location (tap map or search)"
-                  class="w-full py-2 px-2 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200 outline-none"
+                  class="w-full py-2 px-2 pr-20 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200 outline-none"
                 />
+                <!-- Clear Button for Mobile Start Input -->
+                <button
+                  v-if="localStart"
+                  @click="clearInput('start')"
+                  class="absolute right-10 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear start location"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
                 <!-- Current Location Button for Mobile Start -->
                 <button
                   @click="getCurrentLocation"
@@ -680,14 +712,27 @@
             <!-- Destination Input for Mobile -->
             <div class="flex items-center">
               <span class="material-icons text-orange-500 text-3xl z-10"> location_on </span>
-              <input
-                v-model="localDestination"
-                @input="handleInputChange($event.target.value, 'destination')"
-                @focus="setActiveField('destination')"
-                type="text"
-                placeholder="Destination (tap map or search)"
-                class="ml-3 flex-1 py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200 outline-none"
-              />
+              <div class="relative flex-1 ml-3">
+                <input
+                  v-model="localDestination"
+                  @input="handleInputChange($event.target.value, 'destination')"
+                  @focus="setActiveField('destination')"
+                  type="text"
+                  placeholder="Destination (tap map or search)"
+                  class="w-full py-2 px-2 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200 outline-none"
+                />
+                <!-- Clear Button for Mobile Destination Input -->
+                <button
+                  v-if="localDestination"
+                  @click="clearInput('destination')"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear destination"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1126,6 +1171,19 @@ const showAlert = (message, icon = 'info') => {
   alertIcon.value = icon
 }
 
+// Clear input function
+const clearInput = (field) => {
+  if (field === 'start') {
+    localStart.value = ''
+    emit('update:start', '')
+    emit('input-change', { value: '', field: 'start' })
+  } else {
+    localDestination.value = ''
+    emit('update:destination', '')
+    emit('input-change', { value: '', field: 'destination' })
+  }
+  showSuggestions.value = false
+}
 
   // Watch for prop changes
   watch(

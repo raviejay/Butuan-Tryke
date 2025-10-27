@@ -494,7 +494,8 @@ const submitReport = async () => {
     }
 
     console.log('Submitting report:', submissionData)
-
+    console.log('Report type:', reportForm.value.type)
+    console.log('hello')
     if (reportForm.value.type === 'review') {
       // Insert into reviews table
       const { data, error } = await supabase
@@ -506,6 +507,8 @@ const submitReport = async () => {
           },
         ])
         .select()
+
+        console.log('Im here 1')
 
       if (error) throw error
     } else {
@@ -521,6 +524,7 @@ const submitReport = async () => {
         ])
         .select()
 
+      console.log('Im here 2')
       if (error) throw error
     }
 
@@ -537,12 +541,21 @@ const submitReport = async () => {
       emit('submit')
       closeModal()
     }, 1500) // Shorter delay since we're managing the alert manually
-  } catch (error) {
+ } catch (error) {
     console.error('Submission failed:', error)
     console.error('Error code:', error.code)
     console.error('Error details:', JSON.stringify(error, null, 2))
-    showAlert('error', `Failed to submit: ${error.message}`)
+    
+    // More user-friendly error message
+    const errorMessage = error.message || 'An unexpected error occurred. Please try again.'
+    showAlert('error', `Failed to submit: ${errorMessage}`)
+    
     isSubmitting.value = false
+    
+    // Optional: Auto-close modal after showing error for a few seconds
+    // setTimeout(() => {
+    //   closeModal()
+    // }, 3000)
   }
 }
 </script>
