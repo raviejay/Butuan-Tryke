@@ -3,6 +3,7 @@ import precomputedGraph from './precomputed-graph.json' assert { type: 'json' };
 // Simple priority queue implementation
 class MinPriorityQueue {
   constructor() {
+
     this.elements = [];
   }
   
@@ -24,6 +25,10 @@ class FastRouteRestrictionChecker {
   constructor(restrictedGeoJSON) {
     this.restrictedPolygons = this.parseGeoJSON(restrictedGeoJSON);
     this.precomputedGraph = precomputedGraph;
+    
+    // CRITICAL: Filter out edges with violations during initialization
+    this.precomputedGraph.edges = this.precomputedGraph.edges.filter(edge => edge.violations === 0);
+    
     this.adjacencyList = this.buildAdjacencyList();
     
     // Store waypoint information for reference
@@ -31,15 +36,63 @@ class FastRouteRestrictionChecker {
     precomputedGraph.nodes.forEach(node => {
       this.waypointMap.set(node.id, node);
     });
+
+
+      this.northWaypoints = [
+      { id: 'N1', lat: 8.948823, lng: 125.530714, name: 'North Gap 1 (west)' },
+      { id: 'N2', lat: 8.950436, lng: 125.534950, name: 'North Gap 2 (mid)' },
+      { id: 'N3', lat: 8.950918, lng: 125.540935, name: 'North Gap 3 (east)' },
+      { id: 'N4', lat: 8.958513, lng: 125.527187, name: 'North Gap SUB 1 (East)' },
+      { id: 'N5', lat: 8.948280, lng: 125.546785, name: 'North Gap mid 1 (mid)' },
+      { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' },
+      { id: 'N7', lat: 8.951750, lng: 125.537656, name: 'North Gap mid 3 (mid)' },
+      { id: 'N10', lat: 8.948201, lng: 125.542222, name: 'North Gap sub 6 (west)' },
+      
+      { id: 'N8', lat: 8.956175, lng: 125.504998, name: 'North Gap mid 4 (mid)' },
+      { id: 'N9', lat: 8.960337, lng: 125.515402, name: 'North Gap sub 5 (west)' },
+      { id: 'N11', lat: 8.948680, lng: 125.502426, name: 'North Gap mid 11 (mid)' },
+      { id: 'N12', lat: 8.947477, lng:  125.543557, name: 'North Gap mid 12 (mid)' },
+      { id: 'N13', lat: 8.945715, lng:  125.500617, name: 'North Gap mid 13 (mid)' },
+      { id: 'N14', lat: 8.950832, lng:  125.542432, name: 'North Gap mid 14 (mid)' },
+      { id: 'N15', lat: 8.950910, lng:  125.501874, name: 'North Gap mid 15 (mid)' }
+    ]
     
-    // Keep your original waypoints for reference
-    this.northWaypoints = [];
-    this.southWaypoints = [];
-    this.highwayCenterLine = [];
+    this.southWaypoints = [
+      { id: 'S1', lat: 8.941320, lng: 125.533488, name: 'South Gap 1 (west)' },
+      { id: 'S2', lat: 8.943665, lng: 125.537128, name: 'South Gap 2 (mid)' },
+      { id: 'S3', lat: 8.944301, lng: 125.540400, name: 'South Gap 3 (east)' },
+      { id: 'S4', lat: 8.940970, lng: 125.532428, name: 'South Gap sub 4 (east)' },
+      { id: 'S5', lat: 8.945942, lng: 125.544160, name: 'South Gap sub 5 (east)' },
+      { id: 'S6', lat: 8.940305, lng: 125.525923, name: 'South Gap sub 6 (west)' },
+      { id: 'S9', lat: 8.947525, lng: 125.552867, name: 'South Gap sub 9 (east)' },
+      { id: 'S8', lat: 8.935942, lng: 125.555209, name: 'South Gap sub 8 (east)' },
+      { id: 'S7', lat: 8.927561, lng: 125.557032, name: 'South Gap sub 7 (west)' },
+
+        
+      { id: 'S10', lat: 8.931793, lng: 125.548944, name: 'South Gap sub 10 (east)' },
+      { id: 'S11', lat: 8.919436, lng: 125.551529, name: 'South Gap sub 11 (east)' },
+      { id: 'S12', lat: 8.925532, lng: 125.539604, name: 'South Gap sub 12 (west)' },
+
+   
+       { id: 'S20', lat: 8.909333, lng: 125.545842, name: 'South Gap sub 20 (east)' },
+      { id: 'S13', lat:  8.903923, lng: 125.554850, name: 'South Gap sub 13 (east)' },
+       { id: 'S14', lat: 8.914116, lng: 125.561223, name: 'South Gap sub 14 (east)' },
+      { id: 'S15', lat:  8.914956, lng: 125.566260, name: 'South Gap sub 15 (east)' },
+       { id: 'S16', lat: 8.930484, lng: 125.560737, name: 'South Gap sub 16 (east)' },
+     
+
+      { id: 'S17', lat:  8.903851, lng: 125.562948, name: 'South Gap sub 17 (east)' },
+       { id: 'S18', lat: 8.893598, lng: 125.557847, name: 'South Gap sub 18 (east)' },
+       { id: 'S19', lat: 8.939874, lng: 125.522571, name: 'South Gap sub 19 (east)' },
+       { id: 'S21', lat: 8.938498, lng: 125.539557, name: 'South Gap sub 21 (east)' },
+
+     
+    ]
+
     
     console.log(`🚀 FastRouteRestrictionChecker initialized with precomputed graph`);
     console.log(`   📍 ${precomputedGraph.nodes.length} waypoints`);
-    console.log(`   🔗 ${precomputedGraph.edges.length} precomputed connections`);
+    console.log(`   🔗 ${this.precomputedGraph.edges.length} safe connections (violations filtered out)`);
     console.log(`   📅 Built: ${new Date(precomputedGraph.metadata.builtAt).toLocaleDateString()}`);
   }
 
@@ -67,131 +120,104 @@ class FastRouteRestrictionChecker {
       list.set(node.id, []);
     });
     
-    // Add all precomputed edges
+    // Add ONLY safe edges (violations === 0)
     this.precomputedGraph.edges.forEach(edge => {
-      list.get(edge.from).push({
-        node: edge.to,
-        cost: edge.cost,
-        distance: edge.distance,
-        violations: edge.violations
-      });
-      
-      list.get(edge.to).push({
-        node: edge.from, 
-        cost: edge.cost,
-        distance: edge.distance,
-        violations: edge.violations
-      });
+      if (edge.violations === 0) {
+        list.get(edge.from).push({
+          node: edge.to,
+          cost: edge.distance, // Use pure distance as cost
+          distance: edge.distance
+        });
+        
+        list.get(edge.to).push({
+          node: edge.from, 
+          cost: edge.distance,
+          distance: edge.distance
+        });
+      }
     });
     
     return list;
   }
 
   async findOptimalWaypoints(startPoint, endPoint, violations = []) {
-  console.log('\n=== FINDING MULTIPLE ROUTE OPTIONS ===');
-  
-  // Find nearby nodes
-  const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 3);
-  const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 3);
-  
-  if (startConnections.length === 0 || endConnections.length === 0) {
-    console.warn('⚠️ Could not find safe connections');
-    return [];
-  }
+    console.log('\n=== FAST ROUTE OPTIMIZATION ===');
+    console.log('🚀 Using precomputed graph with ZERO-VIOLATION requirement...');
 
-  // Create enhanced graph
-  const enhancedList = new Map(this.adjacencyList);
-  enhancedList.set('start', startConnections);
-  enhancedList.set('end', endConnections);
-  
-  startConnections.forEach(conn => {
-    if (enhancedList.has(conn.node)) {
-      enhancedList.get(conn.node).push({ 
-        node: 'start', 
-        cost: conn.cost,
-        distance: conn.distance,
-        violations: conn.violations || 0
-      });
+    // Find multiple connection options for robustness
+    const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 5);
+    const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 5);
+    
+    if (startConnections.length === 0 || endConnections.length === 0) {
+      console.warn('⚠️ Could not find safe connections from start/end points');
+      return [];
     }
-  });
-  
-  endConnections.forEach(conn => {
-    if (enhancedList.has(conn.node)) {
-      enhancedList.get(conn.node).push({ 
-        node: 'end', 
-        cost: conn.cost,
-        distance: conn.distance,
-        violations: conn.violations || 0
-      });
-    }
-  });
 
-  // Run improved Dijkstra
-  const result = this.runDijkstra(enhancedList, 'start', 'end');
-  
-  if (result.path.length > 0) {
-    console.log(`🏆 Optimal path found!`);
-    console.log(`   📍 Waypoints: ${result.path.length}`);
-    console.log(`   ⚠️ Total violations: ${result.totalViolations}`);
-    console.log(`   📏 Total distance: ${(result.totalCost / 1000).toFixed(1)}km`);
-  } else {
-    console.log('❌ No safe path found');
-  }
-  
-  console.log('========================================\n');
-  return result.path;
-}
+    console.log(`   ✅ Start has ${startConnections.length} safe connections`);
+    console.log(`   ✅ End has ${endConnections.length} safe connections`);
 
-// Helper: Check if intermediate waypoints would help
-async findIntermediateWaypoints(segmentStart, segmentEnd, maxIntermediatePoints = 3) {
-  console.log(`🔍 Finding intermediate waypoints between segments...`);
-  
-  // Get all nodes that are "between" the two points
-  const candidates = Array.from(this.waypointMap.values()).filter(node => {
-    const nodePoint = [node.lat, node.lng];
-    const distToStart = this.calculateDistance(segmentStart, nodePoint);
-    const distToEnd = this.calculateDistance(nodePoint, segmentEnd);
-    const directDist = this.calculateDistance(segmentStart, segmentEnd);
+    // Try multiple start-end combinations to find best path
+    let bestResult = { path: [], totalCost: Infinity, hopCount: Infinity };
     
-    // Node should be roughly between start and end (not too far off the path)
-    const totalDist = distToStart + distToEnd;
-    const detourRatio = totalDist / directDist;
-    
-    return detourRatio < 1.5; // Allow 50% detour
-  });
-  
-  console.log(`   Found ${candidates.length} candidate waypoints`);
-  
-  // Test each candidate
-  const validIntermediates = [];
-  for (const candidate of candidates.slice(0, maxIntermediatePoints * 2)) {
-    const test = await this.testPathWithOSRM([
-      segmentStart,
-      [candidate.lat, candidate.lng],
-      segmentEnd
-    ]);
-    
-    if (test.valid && test.violations < 10) { // Much better than direct
-      validIntermediates.push({
-        node: candidate,
-        violations: test.violations,
-        distance: test.distance
-      });
+    for (const startConn of startConnections.slice(0, 3)) {
+      for (const endConn of endConnections.slice(0, 3)) {
+        const enhancedList = this.buildEnhancedGraph(startPoint, endPoint, [startConn], [endConn]);
+        const result = this.runDijkstra(enhancedList, 'start', 'end');
+        
+        // Prefer fewer hops if costs are similar (within 20%)
+        const costDiff = (result.totalCost - bestResult.totalCost) / bestResult.totalCost;
+        if (result.totalCost < bestResult.totalCost || 
+            (Math.abs(costDiff) < 0.2 && result.hopCount < bestResult.hopCount)) {
+          bestResult = result;
+        }
+      }
     }
     
-    if (validIntermediates.length >= maxIntermediatePoints) break;
-  }
-  
-  // Sort by violations
-  validIntermediates.sort((a, b) => a.violations - b.violations);
-  
-  console.log(`   ✅ Found ${validIntermediates.length} valid intermediate points`);
-  
-  return validIntermediates.map(v => [v.node.lat, v.node.lng]);
-}
-  async findNearbyPrecomputedNodes(point, maxConnections = 3) {
-    const VIOLATION_PENALTY = 1000000;
+    if (bestResult.path.length > 0) {
+      console.log(`🏆 Optimal violation-free path found!`);
+      console.log(`   📍 Waypoints: ${bestResult.path.length}`);
+      console.log(`   🔢 Hops: ${bestResult.hopCount}`);
+      console.log(`   📏 Total distance: ${(bestResult.totalCost / 1000).toFixed(2)}km`);
+      console.log(`   ⚡ Computation: Instant (precomputed)`);
+    } else {
+      console.log('❌ No violation-free path found in precomputed graph');
+    }
     
+    console.log('========================================\n');
+    return bestResult.path;
+  }
+
+  buildEnhancedGraph(startPoint, endPoint, startConnections, endConnections) {
+    const enhancedList = new Map(this.adjacencyList);
+    enhancedList.set('start', startConnections);
+    enhancedList.set('end', []);
+    
+    // Add reverse connections from precomputed nodes to start
+    startConnections.forEach(conn => {
+      if (enhancedList.has(conn.node)) {
+        enhancedList.get(conn.node).push({ 
+          node: 'start', 
+          cost: conn.cost,
+          distance: conn.distance 
+        });
+      }
+    });
+    
+    // Add connections from precomputed nodes to end
+    endConnections.forEach(conn => {
+      if (enhancedList.has(conn.node)) {
+        enhancedList.get(conn.node).push({ 
+          node: 'end', 
+          cost: conn.cost,
+          distance: conn.distance 
+        });
+      }
+    });
+    
+    return enhancedList;
+  }
+
+  async findNearbyPrecomputedNodes(point, maxConnections = 5) {
     // Calculate straight-line distances to all precomputed nodes
     const nodesWithDistances = this.precomputedGraph.nodes.map(node => ({
       ...node,
@@ -200,136 +226,102 @@ async findIntermediateWaypoints(segmentStart, segmentEnd, maxIntermediatePoints 
     
     const connections = [];
     
-    // Test routes to nearest nodes
-    for (const node of nodesWithDistances.slice(0, maxConnections * 2)) {
+    // Test routes to nearest nodes - ONLY accept zero-violation paths
+    for (const node of nodesWithDistances.slice(0, maxConnections * 3)) {
       try {
         const test = await this.testPathWithOSRM([point, [node.lat, node.lng]]);
         
-        if (test.valid && !test.error) {
+        // CRITICAL: Only accept paths with ZERO violations
+        if (test.valid && !test.error && test.violations === 0) {
           connections.push({
             node: node.id,
-            cost: test.distance + (test.violations * VIOLATION_PENALTY),
+            cost: test.distance,
             distance: test.distance,
-            violations: test.violations
+            violations: 0
           });
           
+          console.log(`      ✅ Safe connection to ${node.id}: ${(test.distance/1000).toFixed(2)}km`);
+          
           if (connections.length >= maxConnections) break;
+        } else if (test.violations > 0) {
+          console.log(`      ❌ ${node.id} has ${test.violations} violations - rejected`);
         }
       } catch (error) {
-        console.warn(`⚠️ Failed to test connection to ${node.id}:`, error.message);
+        console.warn(`      ⚠️ Failed to test connection to ${node.id}:`, error.message);
       }
     }
     
-    console.log(`   🔌 Connected to ${connections.length} precomputed nodes`);
     return connections;
   }
 
-runDijkstra(adjacencyList, startId, endId) {
-  const distances = new Map();
-  const previous = new Map();
-  const violations = new Map();
-  const visited = new Set(); // CRITICAL: Track visited nodes to prevent infinite loops
-  const pq = new MinPriorityQueue();
-  
-  // Initialize
-  for (const nodeId of adjacencyList.keys()) {
-    distances.set(nodeId, Infinity);
-    violations.set(nodeId, Infinity);
-  }
-  distances.set(startId, 0);
-  violations.set(startId, 0);
-  pq.enqueue(startId, 0);
-  
-  console.log(`🎯 Running Dijkstra from ${startId} to ${endId}...`);
-  let iterations = 0;
-  const MAX_ITERATIONS = 10000; // Safety limit
-  
-  while (!pq.isEmpty() && iterations < MAX_ITERATIONS) {
-    iterations++;
-    const { element: currentId } = pq.dequeue();
+  runDijkstra(adjacencyList, startId, endId) {
+    const distances = new Map();
+    const previous = new Map();
+    const hops = new Map();
+    const pq = new MinPriorityQueue();
     
-    // Skip if already visited
-    if (visited.has(currentId)) continue;
-    visited.add(currentId);
-    
-    if (currentId === endId) {
-      console.log(`✅ Found path in ${iterations} iterations`);
-      break;
+    // Initialize
+    for (const nodeId of adjacencyList.keys()) {
+      distances.set(nodeId, Infinity);
+      hops.set(nodeId, Infinity);
     }
+    distances.set(startId, 0);
+    hops.set(startId, 0);
+    pq.enqueue(startId, 0);
     
-    const neighbors = adjacencyList.get(currentId) || [];
-    const currentViolations = violations.get(currentId);
-    const currentDist = distances.get(currentId);
-    
-    for (const neighbor of neighbors) {
-      // Skip if already visited
-      if (visited.has(neighbor.node)) continue;
+    // Dijkstra's algorithm optimized for distance with hop count consideration
+    while (!pq.isEmpty()) {
+      const { element: currentId } = pq.dequeue();
       
-      const newViolations = currentViolations + (neighbor.violations || 0);
+      if (currentId === endId) break;
       
-      // **FIXED COST CALCULATION**
-      // Priority: violations > distance
-      const VIOLATION_WEIGHT = 100000000; // 100 million per violation
-      const DISTANCE_WEIGHT = 1; // Normal distance cost
+      const neighbors = adjacencyList.get(currentId) || [];
+      const currentDistance = distances.get(currentId);
+      const currentHops = hops.get(currentId);
       
-      const newCost = (newViolations * VIOLATION_WEIGHT) + (neighbor.cost * DISTANCE_WEIGHT);
-      const neighborCost = distances.get(neighbor.node);
-      
-      // **SIMPLE UPDATE RULE**: Only update if new cost is strictly better
-      if (newCost < neighborCost) {
-        distances.set(neighbor.node, newCost);
-        violations.set(neighbor.node, newViolations);
-        previous.set(neighbor.node, currentId);
-        pq.enqueue(neighbor.node, newCost);
+      for (const neighbor of neighbors) {
+        // Prefer direct routes - add small hop penalty
+        const HOP_PENALTY = 50; // Small penalty per waypoint (50m equivalent)
+        const newDistance = currentDistance + neighbor.cost + (HOP_PENALTY * currentHops);
+        const newHops = currentHops + 1;
+        
+        if (newDistance < distances.get(neighbor.node)) {
+          distances.set(neighbor.node, newDistance);
+          hops.set(neighbor.node, newHops);
+          previous.set(neighbor.node, currentId);
+          pq.enqueue(neighbor.node, newDistance);
+        }
       }
     }
-  }
-  
-  if (iterations >= MAX_ITERATIONS) {
-    console.error(`❌ Dijkstra exceeded max iterations (${MAX_ITERATIONS})`);
-    return { 
-      path: [], 
-      totalCost: Infinity, 
-      totalViolations: Infinity 
+    
+    // Reconstruct path
+    const pathIds = [];
+    let currentId = endId;
+    
+    while (currentId !== startId) {
+      pathIds.unshift(currentId);
+      currentId = previous.get(currentId);
+      if (!currentId) {
+        return { path: [], totalCost: Infinity, hopCount: Infinity };
+      }
+    }
+    
+    // Convert to coordinates (exclude start and end)
+    const waypoints = pathIds
+      .filter(id => id !== 'start' && id !== 'end')
+      .map(id => {
+        const node = this.waypointMap.get(id);
+        return node ? [node.lat, node.lng] : null;
+      })
+      .filter(point => point !== null);
+    
+    return {
+      path: waypoints,
+      totalCost: distances.get(endId),
+      hopCount: hops.get(endId)
     };
   }
-  
-  // Reconstruct path
-  const pathIds = [];
-  let currentId = endId;
-  
-  while (currentId && currentId !== startId) {
-    pathIds.unshift(currentId);
-    currentId = previous.get(currentId);
-  }
-  
-  if (currentId !== startId) {
-    console.warn('⚠️ Could not reconstruct complete path');
-    return { 
-      path: [], 
-      totalCost: Infinity, 
-      totalViolations: Infinity 
-    };
-  }
-  
-  // Convert to coordinates
-  const waypoints = pathIds
-    .filter(id => id !== 'start' && id !== 'end')
-    .map(id => {
-      const node = this.waypointMap.get(id);
-      return node ? [node.lat, node.lng] : null;
-    })
-    .filter(point => point !== null);
-  
-  const finalViolations = violations.get(endId);
-  console.log(`🎯 Path: ${waypoints.length} waypoints, ${finalViolations} violations, ${iterations} iterations`);
-  
-  return {
-    path: waypoints,
-    totalCost: distances.get(endId),
-    totalViolations: finalViolations
-  };
-}
+
   async testPathWithOSRM(waypoints) {
     try {
       const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';');
@@ -347,7 +339,7 @@ runDijkstra(adjacencyList, startId, endId) {
       const check = this.checkRouteIntersection(routeCoords);
       
       return { 
-        valid: !check.hasViolation, 
+        valid: check.violations.length === 0, // Only valid if ZERO violations
         violations: check.violations.length,
         routeCoords,
         distance: data.routes[0].distance,
@@ -358,7 +350,6 @@ runDijkstra(adjacencyList, startId, endId) {
       return { valid: false, error: error.message };
     }
   }
-
 
   checkRouteIntersection(routeCoordinates) {
     const violations = [];
@@ -375,6 +366,7 @@ runDijkstra(adjacencyList, startId, endId) {
             polygonId: polygon.id,
             segmentIndex: i
           });
+          break; // One violation per segment is enough
         }
       }
     }
@@ -385,11 +377,10 @@ runDijkstra(adjacencyList, startId, endId) {
     };
   }
 
-
   calculateDistance(point1, point2) {
     const [lat1, lng1] = point1;
     const [lat2, lng2] = point2;
-    const R = 6371;
+    const R = 6371000; // meters
 
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLng = ((lng2 - lng1) * Math.PI) / 180;
@@ -451,17 +442,9 @@ runDijkstra(adjacencyList, startId, endId) {
     return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
   }
 
-
-  buildWaypointString(startPoint, endPoint, waypoints) {
-    const allPoints = [startPoint, ...waypoints, endPoint];
-    return allPoints.map(p => `${p[1]},${p[0]}`).join(';');
-  }
-
-
   adjustRouteEndpoints(startPoint, endPoint) {
     console.log('\n=== CHECKING ROUTE ENDPOINTS ===');
     
-    // Simple adjustment - in real implementation, use your radial search
     const startResult = this.findNearestSafePoint(startPoint);
     const endResult = this.findNearestSafePoint(endPoint);
     
@@ -469,6 +452,12 @@ runDijkstra(adjacencyList, startId, endId) {
     
     if (adjusted) {
       console.log('📍 Endpoint adjustments made');
+      if (startResult.adjusted) {
+        console.log(`   🟢 Start moved ${(this.calculateDistance(startPoint, startResult.point)).toFixed(0)}m to safe point`);
+      }
+      if (endResult.adjusted) {
+        console.log(`   🔴 End moved ${(this.calculateDistance(endPoint, endResult.point)).toFixed(0)}m to safe point`);
+      }
     } else {
       console.log('✅ Both endpoints are safe');
     }
@@ -486,14 +475,15 @@ runDijkstra(adjacencyList, startId, endId) {
     };
   }
 
-
   findNearestSafePoint(point, maxSearchRadius = 0.01) {
     const check = this.isPointInsideRestriction(point);
     if (!check.inside) {
       return { point, adjusted: false };
     }
 
-    // Simple radial search implementation
+    console.log(`   ⚠️ Point ${point} is inside restriction, searching for safe point...`);
+
+    // Radial search with 8 directions
     const [lat, lng] = point;
     for (let r = 1; r <= 10; r++) {
       const radius = (maxSearchRadius / 10) * r;
@@ -505,6 +495,7 @@ runDijkstra(adjacencyList, startId, endId) {
 
         const testCheck = this.isPointInsideRestriction(testPoint);
         if (!testCheck.inside) {
+          console.log(`   ✅ Found safe point at ${(this.calculateDistance(point, testPoint)).toFixed(0)}m away`);
           return { 
             point: testPoint, 
             adjusted: true,
@@ -514,6 +505,7 @@ runDijkstra(adjacencyList, startId, endId) {
       }
     }
 
+    console.warn(`   ⚠️ Could not find safe point within ${maxSearchRadius * 111000}m`);
     return { point, adjusted: false };
   }
 
@@ -537,19 +529,20 @@ runDijkstra(adjacencyList, startId, endId) {
       name: node.name,
       id: node.id,
       side: node.side,
-      isSafe: true // All nodes in precomputed graph are safe
+      isSafe: true
     }));
   }
 
-
   getGraphStats() {
+    const safeEdges = this.precomputedGraph.edges.filter(e => e.violations === 0).length;
     return {
       nodes: this.precomputedGraph.nodes.length,    
       edges: this.precomputedGraph.edges.length,
+      safeEdges: safeEdges,
       builtAt: this.precomputedGraph.metadata.builtAt,
       version: this.precomputedGraph.metadata.version
     };
   }
 }
-
+  
 export default FastRouteRestrictionChecker;

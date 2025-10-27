@@ -17,7 +17,8 @@ class RouteRestrictionChecker {
       { id: 'N11', lat: 8.948680, lng: 125.502426, name: 'North Gap mid 11 (mid)' },
       { id: 'N12', lat: 8.947477, lng:  125.543557, name: 'North Gap mid 12 (mid)' },
       { id: 'N13', lat: 8.945715, lng:  125.500617, name: 'North Gap mid 13 (mid)' },
-      { id: 'N14', lat: 8.950832, lng:  125.542432, name: 'North Gap mid 14 (mid)' }
+      { id: 'N14', lat: 8.950832, lng:  125.542432, name: 'North Gap mid 14 (mid)' },
+      { id: 'N15', lat: 8.950910, lng:  125.501874, name: 'North Gap mid 15 (mid)' }
     ]
     
     this.southWaypoints = [
@@ -37,7 +38,7 @@ class RouteRestrictionChecker {
       { id: 'S12', lat: 8.925532, lng: 125.539604, name: 'South Gap sub 12 (west)' },
 
    
-       { id: 'S12', lat: 8.909333, lng: 125.545842, name: 'South Gap sub 12 (east)' },
+       { id: 'S20', lat: 8.909333, lng: 125.545842, name: 'South Gap sub 20 (east)' },
       { id: 'S13', lat:  8.903923, lng: 125.554850, name: 'South Gap sub 13 (east)' },
        { id: 'S14', lat: 8.914116, lng: 125.561223, name: 'South Gap sub 14 (east)' },
       { id: 'S15', lat:  8.914956, lng: 125.566260, name: 'South Gap sub 15 (east)' },
@@ -46,7 +47,9 @@ class RouteRestrictionChecker {
 
       { id: 'S17', lat:  8.903851, lng: 125.562948, name: 'South Gap sub 17 (east)' },
        { id: 'S18', lat: 8.893598, lng: 125.557847, name: 'South Gap sub 18 (east)' },
-       { id: 'S19', lat: 8.939874, lng: 125.522571, name: 'South Gap sub 19 (east)' }
+       { id: 'S19', lat: 8.939874, lng: 125.522571, name: 'South Gap sub 19 (east)' },
+       { id: 'S21', lat: 8.938498, lng: 125.539557, name: 'South Gap sub 21 (east)' },
+
      
     ]
 
