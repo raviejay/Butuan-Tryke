@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "builtAt": "2025-10-27T08:52:59.679Z",
+    "builtAt": "2025-10-27T11:59:15.551Z",
     "version": "1.0",
     "description": "Precomputed route graph for fast path finding"
   },
@@ -77,8 +77,8 @@
     },
     {
       "id": "N11",
-      "lat": 8.94868,
-      "lng": 125.502426,
+      "lat": 8.948635,
+      "lng": 125.502378,
       "name": "North Gap mid 11 (mid)",
       "side": "north"
     },
@@ -91,8 +91,8 @@
     },
     {
       "id": "N13",
-      "lat": 8.945715,
-      "lng": 125.500617,
+      "lat": 8.945881,
+      "lng": 125.500538,
       "name": "North Gap mid 13 (mid)",
       "side": "north"
     },
@@ -101,6 +101,20 @@
       "lat": 8.950832,
       "lng": 125.542432,
       "name": "North Gap mid 14 (mid)",
+      "side": "north"
+    },
+    {
+      "id": "N15",
+      "lat": 8.951813,
+      "lng": 125.502273,
+      "name": "North Gap mid 15 (mid)",
+      "side": "north"
+    },
+    {
+      "id": "N16",
+      "lat": 8.955031,
+      "lng": 125.536584,
+      "name": "North Gap mid 16 (mid)",
       "side": "north"
     },
     {
@@ -119,8 +133,8 @@
     },
     {
       "id": "S3",
-      "lat": 8.944301,
-      "lng": 125.5404,
+      "lat": 8.944648,
+      "lng": 125.540361,
       "name": "South Gap 3 (east)",
       "side": "south"
     },
@@ -188,10 +202,10 @@
       "side": "south"
     },
     {
-      "id": "S12",
+      "id": "S20",
       "lat": 8.909333,
       "lng": 125.545842,
-      "name": "South Gap sub 12 (east)",
+      "name": "South Gap sub 20 (east)",
       "side": "south"
     },
     {
@@ -241,6 +255,13 @@
       "lat": 8.939874,
       "lng": 125.522571,
       "name": "South Gap sub 19 (east)",
+      "side": "south"
+    },
+    {
+      "id": "S21",
+      "lat": 8.938498,
+      "lng": 125.539557,
+      "name": "South Gap sub 21 (east)",
       "side": "south"
     }
   ],
@@ -300,6 +321,14 @@
       "duration": 162.1,
       "violations": 0,
       "cost": 1347.4
+    },
+    {
+      "from": "N1",
+      "to": "N16",
+      "distance": 1231.7,
+      "duration": 147.3,
+      "violations": 0,
+      "cost": 1231.7
     },
     {
       "from": "N1",
@@ -375,6 +404,14 @@
     },
     {
       "from": "N2",
+      "to": "N16",
+      "distance": 745.3,
+      "duration": 92.5,
+      "violations": 0,
+      "cost": 745.3
+    },
+    {
+      "from": "N2",
       "to": "S2",
       "distance": 796.8,
       "duration": 91.7,
@@ -423,11 +460,19 @@
     },
     {
       "from": "N3",
-      "to": "S3",
-      "distance": 786,
-      "duration": 91.7,
+      "to": "N16",
+      "distance": 812.1,
+      "duration": 92.3,
       "violations": 0,
-      "cost": 786
+      "cost": 812.1
+    },
+    {
+      "from": "N3",
+      "to": "S3",
+      "distance": 699.7,
+      "duration": 73.3,
+      "violations": 0,
+      "cost": 699.7
     },
     {
       "from": "N3",
@@ -455,7 +500,7 @@
     },
     {
       "from": "N3",
-      "to": "S12",
+      "to": "S20",
       "distance": 4746.2,
       "duration": 378.6,
       "violations": 0,
@@ -468,6 +513,14 @@
       "duration": 521.5,
       "violations": 0,
       "cost": 6233.8
+    },
+    {
+      "from": "N3",
+      "to": "S21",
+      "distance": 1540.5,
+      "duration": 150.5,
+      "violations": 0,
+      "cost": 1540.5
     },
     {
       "from": "N4",
@@ -504,18 +557,18 @@
     {
       "from": "N4",
       "to": "N11",
-      "distance": 3793.3,
-      "duration": 302.8,
+      "distance": 3783.6,
+      "duration": 294.4,
       "violations": 0,
-      "cost": 3793.3
+      "cost": 3783.6
     },
     {
       "from": "N4",
       "to": "N13",
-      "distance": 4251.6,
-      "duration": 355.8,
+      "distance": 4231.3,
+      "duration": 353.9,
       "violations": 0,
-      "cost": 4251.6
+      "cost": 4231.3
     },
     {
       "from": "N4",
@@ -524,6 +577,22 @@
       "duration": 280.7,
       "violations": 0,
       "cost": 2377.5
+    },
+    {
+      "from": "N4",
+      "to": "N15",
+      "distance": 3407.5,
+      "duration": 269.7,
+      "violations": 0,
+      "cost": 3407.5
+    },
+    {
+      "from": "N4",
+      "to": "N16",
+      "distance": 1496.5,
+      "duration": 183.6,
+      "violations": 0,
+      "cost": 1496.5
     },
     {
       "from": "N4",
@@ -671,11 +740,19 @@
     },
     {
       "from": "N6",
-      "to": "S3",
-      "distance": 1093.2,
-      "duration": 148.1,
+      "to": "N16",
+      "distance": 1241.3,
+      "duration": 155,
       "violations": 0,
-      "cost": 1093.2
+      "cost": 1241.3
+    },
+    {
+      "from": "N6",
+      "to": "S3",
+      "distance": 1006.8,
+      "duration": 129.7,
+      "violations": 0,
+      "cost": 1006.8
     },
     {
       "from": "N6",
@@ -703,7 +780,7 @@
     },
     {
       "from": "N6",
-      "to": "S12",
+      "to": "S20",
       "distance": 5053.4,
       "duration": 435,
       "violations": 0,
@@ -716,6 +793,14 @@
       "duration": 577.9,
       "violations": 0,
       "cost": 6540.9
+    },
+    {
+      "from": "N6",
+      "to": "S21",
+      "distance": 1847.6,
+      "duration": 206.9,
+      "violations": 0,
+      "cost": 1847.6
     },
     {
       "from": "N7",
@@ -743,6 +828,14 @@
     },
     {
       "from": "N7",
+      "to": "N16",
+      "distance": 384.1,
+      "duration": 43.1,
+      "violations": 0,
+      "cost": 384.1
+    },
+    {
+      "from": "N7",
       "to": "S2",
       "distance": 1171.1,
       "duration": 142.3,
@@ -752,10 +845,10 @@
     {
       "from": "N7",
       "to": "S3",
-      "distance": 1199.2,
-      "duration": 139,
+      "distance": 1112.9,
+      "duration": 120.6,
       "violations": 0,
-      "cost": 1199.2
+      "cost": 1112.9
     },
     {
       "from": "N7",
@@ -783,7 +876,7 @@
     },
     {
       "from": "N7",
-      "to": "S12",
+      "to": "S20",
       "distance": 5159.4,
       "duration": 425.9,
       "violations": 0,
@@ -796,6 +889,14 @@
       "duration": 568.8,
       "violations": 0,
       "cost": 6647
+    },
+    {
+      "from": "N7",
+      "to": "S21",
+      "distance": 1953.7,
+      "duration": 197.8,
+      "violations": 0,
+      "cost": 1953.7
     },
     {
       "from": "N10",
@@ -815,11 +916,19 @@
     },
     {
       "from": "N10",
-      "to": "S3",
-      "distance": 795.6,
-      "duration": 107.4,
+      "to": "N16",
+      "distance": 1262,
+      "duration": 164.3,
       "violations": 0,
-      "cost": 795.6
+      "cost": 1262
+    },
+    {
+      "from": "N10",
+      "to": "S3",
+      "distance": 709.3,
+      "duration": 89,
+      "violations": 0,
+      "cost": 709.3
     },
     {
       "from": "N10",
@@ -879,7 +988,7 @@
     },
     {
       "from": "N10",
-      "to": "S12",
+      "to": "S20",
       "distance": 4755.8,
       "duration": 394.3,
       "violations": 0,
@@ -910,6 +1019,14 @@
       "cost": 4264.1
     },
     {
+      "from": "N10",
+      "to": "S21",
+      "distance": 1550,
+      "duration": 166.2,
+      "violations": 0,
+      "cost": 1550
+    },
+    {
       "from": "N8",
       "to": "N9",
       "distance": 1502.2,
@@ -920,34 +1037,50 @@
     {
       "from": "N8",
       "to": "N11",
-      "distance": 954,
-      "duration": 70.3,
+      "distance": 944.3,
+      "duration": 61.9,
       "violations": 0,
-      "cost": 954
+      "cost": 944.3
     },
     {
       "from": "N8",
       "to": "N13",
-      "distance": 1412.3,
-      "duration": 123.3,
+      "distance": 1392,
+      "duration": 121.4,
       "violations": 0,
-      "cost": 1412.3
+      "cost": 1392
+    },
+    {
+      "from": "N8",
+      "to": "N15",
+      "distance": 568.2,
+      "duration": 37.2,
+      "violations": 0,
+      "cost": 568.2
+    },
+    {
+      "from": "N8",
+      "to": "N16",
+      "distance": 4335.9,
+      "duration": 412.8,
+      "violations": 0,
+      "cost": 4335.9
     },
     {
       "from": "N9",
       "to": "N11",
-      "distance": 2456.1,
-      "duration": 174.8,
+      "distance": 2446.4,
+      "duration": 166.4,
       "violations": 0,
-      "cost": 2456.1
+      "cost": 2446.4
     },
     {
       "from": "N9",
       "to": "N13",
-      "distance": 2914.4,
-      "duration": 227.8,
+      "distance": 2894.1,
+      "duration": 225.9,
       "violations": 0,
-      "cost": 2914.4
+      "cost": 2894.1
     },
     {
       "from": "N9",
@@ -958,12 +1091,36 @@
       "cost": 3714.7
     },
     {
+      "from": "N9",
+      "to": "N15",
+      "distance": 2070.3,
+      "duration": 141.7,
+      "violations": 0,
+      "cost": 2070.3
+    },
+    {
+      "from": "N9",
+      "to": "N16",
+      "distance": 2833.7,
+      "duration": 311.6,
+      "violations": 0,
+      "cost": 2833.7
+    },
+    {
       "from": "N11",
       "to": "N13",
-      "distance": 474.5,
-      "duration": 62,
+      "distance": 447.7,
+      "duration": 59.5,
       "violations": 0,
-      "cost": 474.5
+      "cost": 447.7
+    },
+    {
+      "from": "N11",
+      "to": "N15",
+      "distance": 376.1,
+      "duration": 24.7,
+      "violations": 0,
+      "cost": 376.1
     },
     {
       "from": "N12",
@@ -1038,12 +1195,28 @@
       "cost": 8419.4
     },
     {
+      "from": "N13",
+      "to": "N15",
+      "distance": 823.8,
+      "duration": 83.8,
+      "violations": 0,
+      "cost": 823.8
+    },
+    {
+      "from": "N14",
+      "to": "N16",
+      "distance": 1007.2,
+      "duration": 123.3,
+      "violations": 0,
+      "cost": 1007.2
+    },
+    {
       "from": "N14",
       "to": "S3",
-      "distance": 1120.4,
-      "duration": 138,
+      "distance": 1034.1,
+      "duration": 119.6,
       "violations": 0,
-      "cost": 1120.4
+      "cost": 1034.1
     },
     {
       "from": "N14",
@@ -1071,7 +1244,7 @@
     },
     {
       "from": "N14",
-      "to": "S12",
+      "to": "S20",
       "distance": 5080.6,
       "duration": 424.9,
       "violations": 0,
@@ -1086,6 +1259,94 @@
       "cost": 6568.2
     },
     {
+      "from": "N14",
+      "to": "S21",
+      "distance": 1874.9,
+      "duration": 196.8,
+      "violations": 0,
+      "cost": 1874.9
+    },
+    {
+      "from": "N15",
+      "to": "N16",
+      "distance": 4904,
+      "duration": 450,
+      "violations": 0,
+      "cost": 4904
+    },
+    {
+      "from": "N16",
+      "to": "S1",
+      "distance": 2085.1,
+      "duration": 246.6,
+      "violations": 0,
+      "cost": 2085.1
+    },
+    {
+      "from": "N16",
+      "to": "S2",
+      "distance": 1542.2,
+      "duration": 184.9,
+      "violations": 0,
+      "cost": 1542.2
+    },
+    {
+      "from": "N16",
+      "to": "S3",
+      "distance": 1497,
+      "duration": 163.7,
+      "violations": 0,
+      "cost": 1497
+    },
+    {
+      "from": "N16",
+      "to": "S10",
+      "distance": 3920.5,
+      "duration": 373.4,
+      "violations": 0,
+      "cost": 3920.5
+    },
+    {
+      "from": "N16",
+      "to": "S11",
+      "distance": 5460.6,
+      "duration": 490.2,
+      "violations": 0,
+      "cost": 5460.6
+    },
+    {
+      "from": "N16",
+      "to": "S12",
+      "distance": 3621.1,
+      "duration": 324.8,
+      "violations": 0,
+      "cost": 3621.1
+    },
+    {
+      "from": "N16",
+      "to": "S20",
+      "distance": 5543.6,
+      "duration": 469,
+      "violations": 0,
+      "cost": 5543.6
+    },
+    {
+      "from": "N16",
+      "to": "S13",
+      "distance": 7031.1,
+      "duration": 611.9,
+      "violations": 0,
+      "cost": 7031.1
+    },
+    {
+      "from": "N16",
+      "to": "S21",
+      "distance": 2337.8,
+      "duration": 240.9,
+      "violations": 0,
+      "cost": 2337.8
+    },
+    {
       "from": "S1",
       "to": "S2",
       "distance": 542.9,
@@ -1096,10 +1357,10 @@
     {
       "from": "S1",
       "to": "S3",
-      "distance": 1001.4,
-      "duration": 137.2,
+      "distance": 1089.4,
+      "duration": 155.4,
       "violations": 0,
-      "cost": 1001.4
+      "cost": 1089.4
     },
     {
       "from": "S1",
@@ -1151,7 +1412,7 @@
     },
     {
       "from": "S1",
-      "to": "S12",
+      "to": "S20",
       "distance": 4403.5,
       "duration": 400.4,
       "violations": 0,
@@ -1174,12 +1435,20 @@
       "cost": 1252
     },
     {
+      "from": "S1",
+      "to": "S21",
+      "distance": 1197.8,
+      "duration": 172.3,
+      "violations": 0,
+      "cost": 1197.8
+    },
+    {
       "from": "S2",
       "to": "S3",
-      "distance": 458.5,
-      "duration": 73.3,
+      "distance": 546.5,
+      "duration": 91.5,
       "violations": 0,
-      "cost": 458.5
+      "cost": 546.5
     },
     {
       "from": "S2",
@@ -1231,7 +1500,7 @@
     },
     {
       "from": "S2",
-      "to": "S12",
+      "to": "S20",
       "distance": 4265.4,
       "duration": 352.7,
       "violations": 0,
@@ -1254,68 +1523,92 @@
       "cost": 1794.8
     },
     {
+      "from": "S2",
+      "to": "S21",
+      "distance": 1059.7,
+      "duration": 124.6,
+      "violations": 0,
+      "cost": 1059.7
+    },
+    {
       "from": "S3",
       "to": "S4",
-      "distance": 1236.3,
-      "duration": 166.1,
+      "distance": 1148.2,
+      "duration": 147.9,
       "violations": 0,
-      "cost": 1236.3
+      "cost": 1148.2
     },
     {
       "from": "S3",
       "to": "S5",
-      "distance": 595.5,
-      "duration": 92.1,
+      "distance": 681.9,
+      "duration": 110.5,
       "violations": 0,
-      "cost": 595.5
+      "cost": 681.9
     },
     {
       "from": "S3",
       "to": "S6",
-      "distance": 1985.2,
-      "duration": 250.2,
+      "distance": 1897.1,
+      "duration": 232,
       "violations": 0,
-      "cost": 1985.2
+      "cost": 1897.1
     },
     {
       "from": "S3",
       "to": "S10",
-      "distance": 2511.5,
-      "duration": 227.9,
+      "distance": 2423.5,
+      "duration": 209.7,
       "violations": 0,
-      "cost": 2511.5
+      "cost": 2423.5
     },
     {
       "from": "S3",
       "to": "S11",
-      "distance": 4051.6,
-      "duration": 344.7,
+      "distance": 3963.5,
+      "duration": 326.5,
       "violations": 0,
-      "cost": 4051.6
+      "cost": 3963.5
     },
     {
       "from": "S3",
       "to": "S12",
-      "distance": 2212.1,
-      "duration": 179.3,
+      "distance": 2124.1,
+      "duration": 161.1,
       "violations": 0,
-      "cost": 2212.1
+      "cost": 2124.1
     },
     {
       "from": "S3",
-      "to": "S12",
-      "distance": 4134.6,
-      "duration": 323.5,
+      "to": "S20",
+      "distance": 4046.5,
+      "duration": 305.3,
       "violations": 0,
-      "cost": 4134.6
+      "cost": 4046.5
     },
     {
       "from": "S3",
       "to": "S13",
-      "distance": 5622.1,
-      "duration": 466.4,
+      "distance": 5534.1,
+      "duration": 448.2,
       "violations": 0,
-      "cost": 5622.1
+      "cost": 5534.1
+    },
+    {
+      "from": "S3",
+      "to": "S19",
+      "distance": 2277.4,
+      "duration": 278.1,
+      "violations": 0,
+      "cost": 2277.4
+    },
+    {
+      "from": "S3",
+      "to": "S21",
+      "distance": 840.8,
+      "duration": 77.2,
+      "violations": 0,
+      "cost": 840.8
     },
     {
       "from": "S4",
@@ -1359,7 +1652,7 @@
     },
     {
       "from": "S4",
-      "to": "S12",
+      "to": "S20",
       "distance": 4526.4,
       "duration": 414.1,
       "violations": 0,
@@ -1380,6 +1673,14 @@
       "duration": 130.2,
       "violations": 0,
       "cost": 1129.1
+    },
+    {
+      "from": "S4",
+      "to": "S21",
+      "distance": 1320.6,
+      "duration": 186,
+      "violations": 0,
+      "cost": 1320.6
     },
     {
       "from": "S5",
@@ -1471,7 +1772,7 @@
     },
     {
       "from": "S6",
-      "to": "S12",
+      "to": "S20",
       "distance": 5190,
       "duration": 493.5,
       "violations": 0,
@@ -1492,6 +1793,14 @@
       "duration": 46.1,
       "violations": 0,
       "cost": 380.2
+    },
+    {
+      "from": "S6",
+      "to": "S21",
+      "distance": 1984.2,
+      "duration": 265.4,
+      "violations": 0,
+      "cost": 1984.2
     },
     {
       "from": "S9",
@@ -1655,7 +1964,7 @@
     },
     {
       "from": "S10",
-      "to": "S12",
+      "to": "S20",
       "distance": 4025,
       "duration": 329.9,
       "violations": 0,
@@ -1678,6 +1987,14 @@
       "cost": 3943.9
     },
     {
+      "from": "S10",
+      "to": "S21",
+      "distance": 1722,
+      "duration": 156.1,
+      "violations": 0,
+      "cost": 1722
+    },
+    {
       "from": "S11",
       "to": "S12",
       "distance": 2030,
@@ -1687,7 +2004,7 @@
     },
     {
       "from": "S11",
-      "to": "S12",
+      "to": "S20",
       "distance": 2990.2,
       "duration": 260.2,
       "violations": 0,
@@ -1710,8 +2027,16 @@
       "cost": 5482
     },
     {
+      "from": "S11",
+      "to": "S21",
+      "distance": 3260.1,
+      "duration": 274.1,
+      "violations": 0,
+      "cost": 3260.1
+    },
+    {
       "from": "S12",
-      "to": "S12",
+      "to": "S20",
       "distance": 1922.4,
       "duration": 144.2,
       "violations": 0,
@@ -1735,6 +2060,14 @@
     },
     {
       "from": "S12",
+      "to": "S21",
+      "distance": 1548.3,
+      "duration": 123.7,
+      "violations": 0,
+      "cost": 1548.3
+    },
+    {
+      "from": "S20",
       "to": "S13",
       "distance": 1487.5,
       "duration": 142.9,
@@ -1742,12 +2075,20 @@
       "cost": 1487.5
     },
     {
-      "from": "S12",
+      "from": "S20",
       "to": "S19",
       "distance": 5577.4,
       "duration": 544.8,
       "violations": 0,
       "cost": 5577.4
+    },
+    {
+      "from": "S20",
+      "to": "S21",
+      "distance": 3355.5,
+      "duration": 251.9,
+      "violations": 0,
+      "cost": 3355.5
     },
     {
       "from": "S13",
@@ -1756,6 +2097,14 @@
       "duration": 684.6,
       "violations": 0,
       "cost": 7064.9
+    },
+    {
+      "from": "S13",
+      "to": "S21",
+      "distance": 4843,
+      "duration": 391.7,
+      "violations": 0,
+      "cost": 4843
     },
     {
       "from": "S14",
@@ -1836,6 +2185,14 @@
       "duration": 135.1,
       "violations": 0,
       "cost": 1449
+    },
+    {
+      "from": "S19",
+      "to": "S21",
+      "distance": 2364.5,
+      "duration": 314.9,
+      "violations": 0,
+      "cost": 2364.5
     }
   ]
 }

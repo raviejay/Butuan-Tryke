@@ -14,17 +14,18 @@ class RouteRestrictionChecker {
       
       { id: 'N8', lat: 8.956175, lng: 125.504998, name: 'North Gap mid 4 (mid)' },
       { id: 'N9', lat: 8.960337, lng: 125.515402, name: 'North Gap sub 5 (west)' },
-      { id: 'N11', lat: 8.948680, lng: 125.502426, name: 'North Gap mid 11 (mid)' },
+      { id: 'N11',lat: 8.948635, lng: 125.502378, name: 'North Gap mid 11 (mid)' },
       { id: 'N12', lat: 8.947477, lng:  125.543557, name: 'North Gap mid 12 (mid)' },
-      { id: 'N13', lat: 8.945715, lng:  125.500617, name: 'North Gap mid 13 (mid)' },
+      { id: 'N13', lat: 8.945881, lng:  125.500538, name: 'North Gap mid 13 (mid)' },
       { id: 'N14', lat: 8.950832, lng:  125.542432, name: 'North Gap mid 14 (mid)' },
-      { id: 'N15', lat: 8.950910, lng:  125.501874, name: 'North Gap mid 15 (mid)' }
+      { id: 'N15', lat: 8.951813, lng:  125.502273, name: 'North Gap mid 15 (mid)' },
+      { id: 'N16', lat: 8.955031, lng:  125.536584, name: 'North Gap mid 16 (mid)' },
     ]
     
     this.southWaypoints = [
       { id: 'S1', lat: 8.941320, lng: 125.533488, name: 'South Gap 1 (west)' },
       { id: 'S2', lat: 8.943665, lng: 125.537128, name: 'South Gap 2 (mid)' },
-      { id: 'S3', lat: 8.944301, lng: 125.540400, name: 'South Gap 3 (east)' },
+      { id: 'S3', lat: 8.944648, lng: 125.540361, name: 'South Gap 3 (east)' },
       { id: 'S4', lat: 8.940970, lng: 125.532428, name: 'South Gap sub 4 (east)' },
       { id: 'S5', lat: 8.945942, lng: 125.544160, name: 'South Gap sub 5 (east)' },
       { id: 'S6', lat: 8.940305, lng: 125.525923, name: 'South Gap sub 6 (west)' },

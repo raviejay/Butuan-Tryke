@@ -1412,13 +1412,12 @@ async calculateWaypointRoute(startCoords, destinationCoords, violations) {
   });
 
   try {
-    // **KEY FIX**: Pass ALL points to OSRM in a single request
-    // Format: lng,lat;lng,lat;lng,lat...
+
     const coordinatesString = allPoints
-      .map(point => `${point[1]},${point[0]}`) // OSRM uses lng,lat
+      .map(point => `${point[1]},${point[0]}`) 
       .join(';');
     
-    // Build URL - don't use radiuses parameter (it can cause issues)
+   
     const url = `https://router.project-osrm.org/route/v1/driving/${coordinatesString}?geometries=geojson&overview=full&steps=true&continue_straight=false`;
     
     console.log(`\n🌐 OSRM REQUEST:`);
@@ -1439,13 +1438,13 @@ async calculateWaypointRoute(startCoords, destinationCoords, violations) {
       throw new Error('OSRM returned no routes');
     }
 
-    // **CRITICAL DEBUG**: Check where OSRM actually snapped the waypoints
+   
     console.log(`📊 OSRM Response Analysis:`);
     if (data.waypoints) {
       console.log(`   Found ${data.waypoints.length} waypoints in response`);
       data.waypoints.forEach((wp, idx) => {
         const originalPoint = allPoints[idx];
-        const snappedPoint = [wp.location[1], wp.location[0]]; // Convert to lat,lng
+        const snappedPoint = [wp.location[1], wp.location[0]]; 
         const snapDistance = this.calculateDistance(originalPoint, snappedPoint);
         const snapDistanceMeters = (snapDistance * 1000).toFixed(0);
         
@@ -1519,7 +1518,7 @@ async calculateWaypointRoute(startCoords, destinationCoords, violations) {
       });
     }
     
-    // Verify waypoints were actually used - BETTER VERIFICATION
+ 
     console.log(`🔍 DETAILED waypoint verification...`);
     const waypointVerification = [];
     
@@ -1603,7 +1602,7 @@ calculateDistance(point1, point2) {
   return R * c;
 }
 
-// Helper: Extract route coordinates between two waypoints
+
 extractSegmentCoordinates(allCoordinates, startPoint, endPoint) {
   // Find indices closest to start and end points
   let startIdx = 0;
