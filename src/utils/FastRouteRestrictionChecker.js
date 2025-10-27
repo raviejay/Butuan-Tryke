@@ -88,60 +88,107 @@ class FastRouteRestrictionChecker {
   }
 
   async findOptimalWaypoints(startPoint, endPoint, violations = []) {
-    console.log('\n=== FAST ROUTE OPTIMIZATION ===');
-    console.log('🚀 Using precomputed graph...');
-
-    // Only dynamic part: connect start/end to nearest precomputed nodes
-    const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 3);
-    const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 3);
-    
-    if (startConnections.length === 0 || endConnections.length === 0) {
-      console.warn('⚠️ Could not find safe connections from start/end points');
-      return [];
-    }
-
-    // Create enhanced graph for this request
-    const enhancedList = new Map(this.adjacencyList);
-    enhancedList.set('start', startConnections);
-    enhancedList.set('end', endConnections);
-    
-    // Add reverse connections
-    startConnections.forEach(conn => {
-      if (enhancedList.has(conn.node)) {
-        enhancedList.get(conn.node).push({ 
-          node: 'start', 
-          cost: conn.cost,
-          distance: conn.distance 
-        });
-      }
-    });
-    
-    endConnections.forEach(conn => {
-      if (enhancedList.has(conn.node)) {
-        enhancedList.get(conn.node).push({ 
-          node: 'end', 
-          cost: conn.cost,
-          distance: conn.distance 
-        });
-      }
-    });
-
-    // Run Dijkstra (instant - no API calls)
-    const result = this.runDijkstra(enhancedList, 'start', 'end');
-    
-    if (result.path.length > 0) {
-      console.log(`🏆 Optimal path found!`);
-      console.log(`   📍 Waypoints: ${result.path.length}`);
-      console.log(`   📏 Total distance: ${(result.totalCost / 1000).toFixed(1)}km`);
-      console.log(`   ⚡ Computation: Instant (precomputed)`);
-    } else {
-      console.log('❌ No safe path found using precomputed graph');
-    }
-    
-    console.log('========================================\n');
-    return result.path;
+  console.log('\n=== FINDING MULTIPLE ROUTE OPTIONS ===');
+  
+  // Find nearby nodes
+  const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 3);
+  const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 3);
+  
+  if (startConnections.length === 0 || endConnections.length === 0) {
+    console.warn('⚠️ Could not find safe connections');
+    return [];
   }
 
+  // Create enhanced graph
+  const enhancedList = new Map(this.adjacencyList);
+  enhancedList.set('start', startConnections);
+  enhancedList.set('end', endConnections);
+  
+  startConnections.forEach(conn => {
+    if (enhancedList.has(conn.node)) {
+      enhancedList.get(conn.node).push({ 
+        node: 'start', 
+        cost: conn.cost,
+        distance: conn.distance,
+        violations: conn.violations || 0
+      });
+    }
+  });
+  
+  endConnections.forEach(conn => {
+    if (enhancedList.has(conn.node)) {
+      enhancedList.get(conn.node).push({ 
+        node: 'end', 
+        cost: conn.cost,
+        distance: conn.distance,
+        violations: conn.violations || 0
+      });
+    }
+  });
+
+  // Run improved Dijkstra
+  const result = this.runDijkstra(enhancedList, 'start', 'end');
+  
+  if (result.path.length > 0) {
+    console.log(`🏆 Optimal path found!`);
+    console.log(`   📍 Waypoints: ${result.path.length}`);
+    console.log(`   ⚠️ Total violations: ${result.totalViolations}`);
+    console.log(`   📏 Total distance: ${(result.totalCost / 1000).toFixed(1)}km`);
+  } else {
+    console.log('❌ No safe path found');
+  }
+  
+  console.log('========================================\n');
+  return result.path;
+}
+
+// Helper: Check if intermediate waypoints would help
+async findIntermediateWaypoints(segmentStart, segmentEnd, maxIntermediatePoints = 3) {
+  console.log(`🔍 Finding intermediate waypoints between segments...`);
+  
+  // Get all nodes that are "between" the two points
+  const candidates = Array.from(this.waypointMap.values()).filter(node => {
+    const nodePoint = [node.lat, node.lng];
+    const distToStart = this.calculateDistance(segmentStart, nodePoint);
+    const distToEnd = this.calculateDistance(nodePoint, segmentEnd);
+    const directDist = this.calculateDistance(segmentStart, segmentEnd);
+    
+    // Node should be roughly between start and end (not too far off the path)
+    const totalDist = distToStart + distToEnd;
+    const detourRatio = totalDist / directDist;
+    
+    return detourRatio < 1.5; // Allow 50% detour
+  });
+  
+  console.log(`   Found ${candidates.length} candidate waypoints`);
+  
+  // Test each candidate
+  const validIntermediates = [];
+  for (const candidate of candidates.slice(0, maxIntermediatePoints * 2)) {
+    const test = await this.testPathWithOSRM([
+      segmentStart,
+      [candidate.lat, candidate.lng],
+      segmentEnd
+    ]);
+    
+    if (test.valid && test.violations < 10) { // Much better than direct
+      validIntermediates.push({
+        node: candidate,
+        violations: test.violations,
+        distance: test.distance
+      });
+    }
+    
+    if (validIntermediates.length >= maxIntermediatePoints) break;
+  }
+  
+  // Sort by violations
+  validIntermediates.sort((a, b) => a.violations - b.violations);
+  
+  console.log(`   ✅ Found ${validIntermediates.length} valid intermediate points`);
+  
+  return validIntermediates.map(v => [v.node.lat, v.node.lng]);
+}
   async findNearbyPrecomputedNodes(point, maxConnections = 3) {
     const VIOLATION_PENALTY = 1000000;
     
@@ -177,63 +224,92 @@ class FastRouteRestrictionChecker {
     return connections;
   }
 
- runDijkstra(adjacencyList, startId, endId) {
+runDijkstra(adjacencyList, startId, endId) {
   const distances = new Map();
   const previous = new Map();
-  const hops = new Map(); // NEW: Track number of hops (waypoints used)
+  const violations = new Map();
+  const visited = new Set(); // CRITICAL: Track visited nodes to prevent infinite loops
   const pq = new MinPriorityQueue();
   
   // Initialize
   for (const nodeId of adjacencyList.keys()) {
     distances.set(nodeId, Infinity);
-    hops.set(nodeId, Infinity);
+    violations.set(nodeId, Infinity);
   }
   distances.set(startId, 0);
-  hops.set(startId, 0);
+  violations.set(startId, 0);
   pq.enqueue(startId, 0);
   
-  // Dijkstra's algorithm with hop count awareness
-  while (!pq.isEmpty()) {
+  console.log(`🎯 Running Dijkstra from ${startId} to ${endId}...`);
+  let iterations = 0;
+  const MAX_ITERATIONS = 10000; // Safety limit
+  
+  while (!pq.isEmpty() && iterations < MAX_ITERATIONS) {
+    iterations++;
     const { element: currentId } = pq.dequeue();
     
-    if (currentId === endId) break;
+    // Skip if already visited
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+    
+    if (currentId === endId) {
+      console.log(`✅ Found path in ${iterations} iterations`);
+      break;
+    }
     
     const neighbors = adjacencyList.get(currentId) || [];
-    const currentHops = hops.get(currentId);
+    const currentViolations = violations.get(currentId);
+    const currentDist = distances.get(currentId);
     
     for (const neighbor of neighbors) {
-      // NEW: Calculate cost with waypoint penalty
-      const newHops = currentHops + 1;
-      const WAYPOINT_PENALTY = 500; // Penalty per waypoint (adjust as needed)
-      const hopPenalty = newHops * WAYPOINT_PENALTY;
+      // Skip if already visited
+      if (visited.has(neighbor.node)) continue;
       
-      const newCost = distances.get(currentId) + neighbor.cost + hopPenalty;
+      const newViolations = currentViolations + (neighbor.violations || 0);
       
-      // Prefer routes with fewer hops if costs are similar
-      const costDifference = newCost - distances.get(neighbor.node);
-      const hopDifference = newHops - hops.get(neighbor.node);
+      // **FIXED COST CALCULATION**
+      // Priority: violations > distance
+      const VIOLATION_WEIGHT = 100000000; // 100 million per violation
+      const DISTANCE_WEIGHT = 1; // Normal distance cost
       
-      // Update if: lower cost OR (similar cost but fewer hops)
-      if (newCost < distances.get(neighbor.node) || 
-          (Math.abs(costDifference) < 1000 && hopDifference < 0)) {
+      const newCost = (newViolations * VIOLATION_WEIGHT) + (neighbor.cost * DISTANCE_WEIGHT);
+      const neighborCost = distances.get(neighbor.node);
+      
+      // **SIMPLE UPDATE RULE**: Only update if new cost is strictly better
+      if (newCost < neighborCost) {
         distances.set(neighbor.node, newCost);
-        hops.set(neighbor.node, newHops);
+        violations.set(neighbor.node, newViolations);
         previous.set(neighbor.node, currentId);
         pq.enqueue(neighbor.node, newCost);
       }
     }
   }
   
+  if (iterations >= MAX_ITERATIONS) {
+    console.error(`❌ Dijkstra exceeded max iterations (${MAX_ITERATIONS})`);
+    return { 
+      path: [], 
+      totalCost: Infinity, 
+      totalViolations: Infinity 
+    };
+  }
+  
   // Reconstruct path
   const pathIds = [];
   let currentId = endId;
   
-  while (currentId !== startId) {
+  while (currentId && currentId !== startId) {
     pathIds.unshift(currentId);
     currentId = previous.get(currentId);
-    if (!currentId) {
-      return { path: [], totalCost: Infinity, hopCount: Infinity };
-    }
+  }
+  
+  if (currentId !== startId) {
+    console.warn('⚠️ Could not reconstruct complete path');
+    return { 
+      path: [], 
+      totalCost: Infinity, 
+      totalViolations: Infinity 
+    };
   }
   
   // Convert to coordinates
@@ -245,13 +321,15 @@ class FastRouteRestrictionChecker {
     })
     .filter(point => point !== null);
   
+  const finalViolations = violations.get(endId);
+  console.log(`🎯 Path: ${waypoints.length} waypoints, ${finalViolations} violations, ${iterations} iterations`);
+  
   return {
     path: waypoints,
     totalCost: distances.get(endId),
-    hopCount: hops.get(endId) // Return hop count for debugging
+    totalViolations: finalViolations
   };
 }
-
   async testPathWithOSRM(waypoints) {
     try {
       const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';');

@@ -1280,8 +1280,7 @@ async calculateRouteWithWaypoints(waypoints) {
 //
 
 
-
- async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
+async calculateRouteAvoidingRestrictions(startCoords, destinationCoords) {
   const maxAttempts = 2
   this.bestRouteAttempt = null
   
@@ -1319,7 +1318,7 @@ async calculateRouteWithWaypoints(waypoints) {
         console.log('✅ Route is clear of restricted areas')
         return {
           ...routeData,
-          routeType: attempt === 1 ? 'direct' : 'waypoint-optimized', // Updated
+          routeType: attempt === 1 ? 'direct' : 'waypoint-optimized',
           waypointsUsed: routeData.waypoints || [],
           endpointsAdjusted: adjustedEndpoints.adjusted,
           violationCount: 0
@@ -1329,8 +1328,14 @@ async calculateRouteWithWaypoints(waypoints) {
       this.lastViolations = violationCheck.violations
       console.log(`⚠️ Route intersects ${violationCheck.violations.length} restricted area(s)`)
       
-      // Track best route
-      if (!this.bestRouteAttempt || violationCheck.violations.length < this.bestRouteAttempt.violationCount) {
+      // Track best route - PREFER waypoint routes over direct routes
+      const isWaypointRoute = attempt === 2;
+      const shouldUpdateBest = !this.bestRouteAttempt || 
+                               (isWaypointRoute && this.bestRouteAttempt.attempt === 1) || // Always prefer waypoint over direct
+                               (violationCheck.violations.length < this.bestRouteAttempt.violationCount);
+      
+      if (shouldUpdateBest) {
+        console.log(`💾 Updating best route (Attempt ${attempt}, ${violationCheck.violations.length} violations)`);
         this.bestRouteAttempt = {
           ...routeData,
           violationCount: violationCheck.violations.length,
@@ -1367,10 +1372,9 @@ async calculateRouteWithWaypoints(waypoints) {
   }
 }
 
-
-// SOLUTION 1: Force waypoints by splitting into multiple route segments
+// FIXED SOLUTION: Use OSRM's native multi-waypoint routing
 async calculateWaypointRoute(startCoords, destinationCoords, violations) {
-  console.log('🚀 Finding optimal waypoints with forced routing...');
+  console.log('🚀 Finding optimal waypoints with FORCED routing...');
   
   // Get optimal waypoints
   const waypoints = await this.restrictionChecker.findOptimalWaypoints(
@@ -1386,155 +1390,246 @@ async calculateWaypointRoute(startCoords, destinationCoords, violations) {
     return await this.calculateDirectRoute(startCoords, destinationCoords);
   }
 
-  // Build segments: Start → WP1 → WP2 → ... → End
+  // Build the complete route: Start → WP1 → WP2 → ... → WPn → End
   const allPoints = [
     startCoords,
     ...waypoints,
     destinationCoords
   ];
   
-  console.log(`🔗 Splitting route into ${allPoints.length - 1} segments to FORCE waypoint usage`);
+  console.log(`🔗 Routing through ${allPoints.length} points (start + ${waypoints.length} waypoints + end)`);
+  
+  // Log each point for debugging
+  allPoints.forEach((point, idx) => {
+    if (idx === 0) {
+      console.log(`   🟢 Start: [${point[0].toFixed(6)}, ${point[1].toFixed(6)}]`);
+    } else if (idx === allPoints.length - 1) {
+      console.log(`   🔴 End: [${point[0].toFixed(6)}, ${point[1].toFixed(6)}]`);
+    } else {
+      const wpName = this.getWaypointName(point);
+      console.log(`   📍 WP${idx} (${wpName}): [${point[0].toFixed(6)}, ${point[1].toFixed(6)}]`);
+    }
+  });
 
   try {
-    // Route each segment separately to guarantee waypoints are used
-    const segments = [];
-    let totalDistance = 0;
-    let totalDuration = 0;
-    let allCoordinates = [];
+    // **KEY FIX**: Pass ALL points to OSRM in a single request
+    // Format: lng,lat;lng,lat;lng,lat...
+    const coordinatesString = allPoints
+      .map(point => `${point[1]},${point[0]}`) // OSRM uses lng,lat
+      .join(';');
     
+    // Build URL - don't use radiuses parameter (it can cause issues)
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordinatesString}?geometries=geojson&overview=full&steps=true&continue_straight=false`;
+    
+    console.log(`\n🌐 OSRM REQUEST:`);
+    console.log(`   Points: ${allPoints.length} (${waypoints.length} waypoints)`);
+    console.log(`   URL: ${url}`);
+    console.log(`\n🧪 TEST IN BROWSER: Copy this URL to verify OSRM response:`);
+    console.log(url);
+    console.log(`\n`);
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`OSRM HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.routes || data.routes.length === 0) {
+      throw new Error('OSRM returned no routes');
+    }
+
+    // **CRITICAL DEBUG**: Check where OSRM actually snapped the waypoints
+    console.log(`📊 OSRM Response Analysis:`);
+    if (data.waypoints) {
+      console.log(`   Found ${data.waypoints.length} waypoints in response`);
+      data.waypoints.forEach((wp, idx) => {
+        const originalPoint = allPoints[idx];
+        const snappedPoint = [wp.location[1], wp.location[0]]; // Convert to lat,lng
+        const snapDistance = this.calculateDistance(originalPoint, snappedPoint);
+        const snapDistanceMeters = (snapDistance * 1000).toFixed(0);
+        
+        if (idx === 0) {
+          console.log(`   🟢 Start snapped ${snapDistanceMeters}m away to: ${wp.name || 'unnamed road'}`);
+        } else if (idx === data.waypoints.length - 1) {
+          console.log(`   🔴 End snapped ${snapDistanceMeters}m away to: ${wp.name || 'unnamed road'}`);
+        } else {
+          const wpName = this.getWaypointName(originalPoint);
+          if (snapDistance > 0.05) { // More than 50m
+            console.warn(`   ⚠️ WP${idx} (${wpName}) snapped ${snapDistanceMeters}m away! Road: ${wp.name || 'unnamed'}`);
+            console.warn(`      Original: [${originalPoint[0].toFixed(6)}, ${originalPoint[1].toFixed(6)}]`);
+            console.warn(`      Snapped:  [${snappedPoint[0].toFixed(6)}, ${snappedPoint[1].toFixed(6)}]`);
+          } else {
+            console.log(`   ✅ WP${idx} (${wpName}) snapped ${snapDistanceMeters}m away to: ${wp.name || 'unnamed road'}`);
+          }
+        }
+      });
+    }
+
+    const route = data.routes[0];
+    const routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+    
+    console.log(`✅ Multi-waypoint route successful!`);
+    console.log(`   📏 Total Distance: ${(route.distance / 1000).toFixed(2)}km`);
+    console.log(`   ⏱️ Total Duration: ${Math.round(route.duration / 60)}min`);
+    console.log(`   🛣️ Route points: ${routeCoordinates.length}`);
+    console.log(`   📍 Waypoints FORCED: ${waypoints.length}`);
+    
+    // **NEW: Check which segments have violations**
+    console.log(`\n🔍 Checking route segments for violations...`);
+    let segmentViolations = [];
+    
+    // Check each segment between waypoints
     for (let i = 0; i < allPoints.length - 1; i++) {
       const segmentStart = allPoints[i];
       const segmentEnd = allPoints[i + 1];
       
-      console.log(`   🛣️ Segment ${i + 1}: [${segmentStart[0].toFixed(4)}, ${segmentStart[1].toFixed(4)}] → [${segmentEnd[0].toFixed(4)}, ${segmentEnd[1].toFixed(4)}]`);
+      // Find route coordinates for this segment
+      const segmentCoords = this.extractSegmentCoordinates(
+        routeCoordinates, 
+        segmentStart, 
+        segmentEnd
+      );
       
-      // Route this segment
-      const segmentRoute = await this.routeSegment(segmentStart, segmentEnd);
+      // Check violations for this segment
+      const segmentCheck = this.restrictionChecker.checkRouteIntersection(segmentCoords);
       
-      if (!segmentRoute.success) {
-        throw new Error(`Segment ${i + 1} routing failed`);
-      }
+      const startName = i === 0 ? 'Start' : `WP${i}`;
+      const endName = i === allPoints.length - 2 ? 'End' : `WP${i + 1}`;
       
-      segments.push(segmentRoute);
-      totalDistance += parseFloat(segmentRoute.distance);
-      totalDuration += segmentRoute.duration;
-      
-      // Merge coordinates (skip first point of subsequent segments to avoid duplicates)
-      if (i === 0) {
-        allCoordinates.push(...segmentRoute.coordinates);
+      if (segmentCheck.hasViolation) {
+        console.warn(`   ⚠️ ${startName} → ${endName}: ${segmentCheck.violations.length} violations`);
+        segmentViolations.push({
+          from: startName,
+          to: endName,
+          violations: segmentCheck.violations.length,
+          fromCoords: segmentStart,
+          toCoords: segmentEnd
+        });
       } else {
-        allCoordinates.push(...segmentRoute.coordinates.slice(1));
+        console.log(`   ✅ ${startName} → ${endName}: Clear`);
       }
-      
-      console.log(`      ✅ Segment ${i + 1}: ${segmentRoute.distance}km, ${segmentRoute.duration}min`);
     }
     
-    console.log(`✅ Multi-segment waypoint route successful:`);
-    console.log(`   📏 Total Distance: ${totalDistance.toFixed(2)}km`);
-    console.log(`   ⏱️ Total Duration: ${totalDuration}min`);
-    console.log(`   📍 Waypoints FORCED: ${waypoints.length}`);
-    console.log(`   🛣️ Total Route points: ${allCoordinates.length}`);
+    if (segmentViolations.length > 0) {
+      console.warn(`\n⚠️ ${segmentViolations.length} segments have violations!`);
+      console.warn(`💡 These segments need additional intermediate waypoints:`);
+      segmentViolations.forEach(sv => {
+        console.warn(`   - ${sv.from} → ${sv.to} (${sv.violations} violations)`);
+      });
+    }
+    
+    // Verify waypoints were actually used - BETTER VERIFICATION
+    console.log(`🔍 DETAILED waypoint verification...`);
+    const waypointVerification = [];
+    
+    waypoints.forEach((wp, idx) => {
+      // Check if waypoint is in the OSRM response waypoints
+      const osrmWaypoint = data.waypoints[idx + 1]; // +1 because first is start
+      const osrmSnapped = [osrmWaypoint.location[1], osrmWaypoint.location[0]];
+      
+      // Check distance from original waypoint to OSRM's snapped location
+      const snapDistance = this.calculateDistance(wp, osrmSnapped);
+      
+      // Check if snapped point is actually in the route
+      const closestDistance = this.findDistanceToNearestRoutePoint(osrmSnapped, routeCoordinates);
+      const distanceMeters = (closestDistance * 1000).toFixed(0);
+      
+      const wpName = this.getWaypointName(wp);
+      
+      console.log(`\n   📍 WP${idx + 1} (${wpName})`);
+      console.log(`      Original: [${wp[0].toFixed(6)}, ${wp[1].toFixed(6)}]`);
+      console.log(`      OSRM Snapped: [${osrmSnapped[0].toFixed(6)}, ${osrmSnapped[1].toFixed(6)}]`);
+      console.log(`      Snap distance: ${(snapDistance * 1000).toFixed(0)}m`);
+      console.log(`      Distance from route: ${distanceMeters}m`);
+      
+      waypointVerification.push({
+        waypoint: wp,
+        closestDistance: closestDistance,
+        snapDistance: snapDistance,
+        name: wpName
+      });
+      
+      // New stricter check
+      if (snapDistance > 1.0) { // Snapped more than 1km away
+        console.error(`      ❌ OSRM snapped waypoint too far! It might not be routing through it.`);
+      } else if (closestDistance > 0.1) { // Route is more than 100m from snapped point
+        console.error(`      ❌ Route does NOT pass through this waypoint!`);
+      } else {
+        console.log(`      ✅ Waypoint is used in route`);
+      }
+    });
 
     return {
-      coordinates: allCoordinates,
-      distance: totalDistance.toFixed(2),
-      duration: totalDuration,
+      coordinates: routeCoordinates,
+      distance: (route.distance / 1000).toFixed(2),
+      duration: Math.round(route.duration / 60),
       success: true,
       waypoints: waypoints.map((wp, idx) => ({
         lat: wp[0],
         lng: wp[1],
         index: idx + 1,
-        name: this.getWaypointName(wp)
+        name: this.getWaypointName(wp),
+        distanceFromRoute: waypointVerification[idx].closestDistance,
+        // NEW: Add OSRM's snapped location for debugging
+        osrmSnapped: {
+          lat: data.waypoints[idx + 1].location[1],
+          lng: data.waypoints[idx + 1].location[0]
+        }
       })),
-      routeType: 'waypoint-forced-segments',
-      segmentCount: segments.length,
-      waypointsRespected: true // Guaranteed by segment routing
+      routeType: 'multi-waypoint-forced',
+      waypointsRespected: waypointVerification.every(v => v.closestDistance < 0.5),
+      // NEW: Add segment violations for debugging
+      segmentViolations: segmentViolations
     };
     
   } catch (error) {
-    console.error('❌ Multi-segment routing error:', error);
+    console.error('❌ Multi-waypoint routing error:', error);
     console.log('🔄 Falling back to direct route');
     return await this.calculateDirectRoute(startCoords, destinationCoords);
   }
 }
 
-// Route a single segment using ORS
-async routeSegment(startCoords, endCoords) {
-  const coordinates = [
-    [startCoords[1], startCoords[0]], // [lng, lat]
-    [endCoords[1], endCoords[0]]      // [lng, lat]
-  ];
+// Helper: Calculate distance between two points (Haversine formula)
+calculateDistance(point1, point2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (point2[0] - point1[0]) * Math.PI / 180;
+  const dLon = (point2[1] - point1[1]) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(point1[0] * Math.PI / 180) * Math.cos(point2[0] * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
-  try {
-    const response = await this.openRouteService.calculate({
-      coordinates: coordinates,
-      profile: 'driving-car',
-      format: 'geojson',
-      preference: 'recommended'
-    });
-
-    if (response && response.features && response.features.length > 0) {
-      const route = response.features[0];
-      const properties = route.properties;
-      const geometry = route.geometry;
-      
-      // Convert to [lat, lng] for Leaflet
-      const routeCoordinates = geometry.coordinates.map(coord => [coord[1], coord[0]]);
-      
-      return {
-        coordinates: routeCoordinates,
-        distance: (properties.segments[0].distance / 1000).toFixed(2),
-        duration: Math.round(properties.segments[0].duration / 60),
-        success: true
-      };
-    } else {
-      throw new Error('No route found for segment');
+// Helper: Extract route coordinates between two waypoints
+extractSegmentCoordinates(allCoordinates, startPoint, endPoint) {
+  // Find indices closest to start and end points
+  let startIdx = 0;
+  let endIdx = allCoordinates.length - 1;
+  let minStartDist = Infinity;
+  let minEndDist = Infinity;
+  
+  allCoordinates.forEach((coord, idx) => {
+    const distToStart = this.calculateDistance(coord, startPoint);
+    const distToEnd = this.calculateDistance(coord, endPoint);
+    
+    if (distToStart < minStartDist) {
+      minStartDist = distToStart;
+      startIdx = idx;
     }
-  } catch (error) {
-    console.error('❌ Segment routing error:', error);
-    return {
-      coordinates: [startCoords, endCoords],
-      distance: 0,
-      duration: 0,
-      success: false
-    };
-  }
+    if (distToEnd < minEndDist) {
+      minEndDist = distToEnd;
+      endIdx = idx;
+    }
+  });
+  
+  // Return segment between these indices
+  return allCoordinates.slice(startIdx, endIdx + 1);
 }
 
-// Helper method to convert violations to OpenRouteService avoid features
-getAvoidFeatures(violations) {
-  const avoidFeatures = [];
-  
-  if (violations && violations.length > 0) {
-    violations.forEach(violation => {
-      switch(violation.type) {
-        case 'tunnel':
-          avoidFeatures.push('tunnels');
-          break;
-        case 'bridge':
-          avoidFeatures.push('bridges');
-          break;
-        case 'highway':
-          avoidFeatures.push('highways');
-          break;
-        case 'ferry':
-          avoidFeatures.push('ferries');
-          break;
-        case 'unpaved':
-          avoidFeatures.push('unpavedroads');
-          break;
-        case 'toll':
-          avoidFeatures.push('tollways');
-          break;
-        // Add more violation types as needed
-      }
-    });
-  }
-  
-  console.log(`🚫 Avoiding features:`, avoidFeatures);
-  return avoidFeatures;
-}
-// Add these helper methods to your RouteFinder class
+// Helper methods
 findDistanceToNearestRoutePoint(point, routeCoordinates) {
   let minDistance = Infinity;
   
@@ -1550,6 +1645,8 @@ findDistanceToNearestRoutePoint(point, routeCoordinates) {
 
 getWaypointName(waypoint) {
   // Try to match waypoint with known waypoints from restriction checker
+  if (!this.restrictionChecker) return 'Unknown Waypoint';
+  
   const allWaypoints = [
     ...this.restrictionChecker.northWaypoints,
     ...this.restrictionChecker.southWaypoints
@@ -1563,7 +1660,6 @@ getWaypointName(waypoint) {
   return matched ? matched.name : 'Unknown Waypoint';
 }
 
-
 async calculateRoute(startCoords, destinationCoords) {
   // Use the new method if restriction checker is available
   if (this.restrictionChecker) {
@@ -1574,44 +1670,42 @@ async calculateRoute(startCoords, destinationCoords) {
   return this.calculateDirectRoute(startCoords, destinationCoords)
 }
 
+async calculateDirectRoute(startCoords, destinationCoords) {
+  for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+    try {
+      const startCoord = `${startCoords[1]},${startCoords[0]}`
+      const endCoord = `${destinationCoords[1]},${destinationCoords[0]}`
+      const url = `https://router.project-osrm.org/route/v1/driving/${startCoord};${endCoord}?geometries=geojson&overview=full`
 
-  async calculateDirectRoute(startCoords, destinationCoords) {
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        const startCoord = `${startCoords[1]},${startCoords[0]}`
-        const endCoord = `${destinationCoords[1]},${destinationCoords[0]}`
-        const url = `https://router.project-osrm.org/route/v1/driving/${startCoord};${endCoord}?geometries=geojson&overview=full`
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
 
-        const response = await fetch(url)
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-
-        const data = await response.json()
-        if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0]
-          return {
-            coordinates: route.geometry.coordinates.map(coord => [coord[1], coord[0]]),
-            distance: (route.distance / 1000).toFixed(2),
-            duration: Math.round(route.duration / 60),
-            success: true
-          }
+      const data = await response.json()
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0]
+        return {
+          coordinates: route.geometry.coordinates.map(coord => [coord[1], coord[0]]),
+          distance: (route.distance / 1000).toFixed(2),
+          duration: Math.round(route.duration / 60),
+          success: true
         }
-        throw new Error('No route found')
-      } catch (error) {
-        if (attempt === this.maxRetries) {
-          console.error('Error calculating route after retries:', error)
-          return {
-            coordinates: [startCoords, destinationCoords],
-            distance: null,
-            duration: null,
-            success: false,
-            fallback: true
-          }
-        }
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
       }
+      throw new Error('No route found')
+    } catch (error) {
+      if (attempt === this.maxRetries) {
+        console.error('Error calculating route after retries:', error)
+        return {
+          coordinates: [startCoords, destinationCoords],
+          distance: null,
+          duration: null,
+          success: false,
+          fallback: true
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt))
     }
   }
-
+}
 
   // new 
 
