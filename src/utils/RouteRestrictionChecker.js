@@ -8,7 +8,7 @@ class RouteRestrictionChecker {
       { id: 'N3', lat: 8.950918, lng: 125.540935, name: 'North Gap 3 (east)' },
       { id: 'N4', lat: 8.958513, lng: 125.527187, name: 'North Gap SUB 1 (East)' },
       { id: 'N5', lat: 8.948280, lng: 125.546785, name: 'North Gap mid 1 (mid)' },
-      { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' },
+       { id: 'N6', lat: 8.949248203494681, lng: 125.54365235221756, name: 'North Gap mid 2 (mid)' },
       { id: 'N7', lat: 8.951750, lng: 125.537656, name: 'North Gap mid 3 (mid)' },
       { id: 'N10', lat: 8.948201, lng: 125.542222, name: 'North Gap sub 6 (west)' },
       
@@ -20,6 +20,7 @@ class RouteRestrictionChecker {
       { id: 'N14', lat: 8.950832, lng:  125.542432, name: 'North Gap mid 14 (mid)' },
       { id: 'N15', lat: 8.951813, lng:  125.502273, name: 'North Gap mid 15 (mid)' },
       { id: 'N16', lat: 8.955031, lng:  125.536584, name: 'North Gap mid 16 (mid)' },
+
     ]
     
     this.southWaypoints = [
@@ -32,7 +33,8 @@ class RouteRestrictionChecker {
       { id: 'S9', lat: 8.947525, lng: 125.552867, name: 'South Gap sub 9 (east)' },
       { id: 'S8', lat: 8.935942, lng: 125.555209, name: 'South Gap sub 8 (east)' },
       { id: 'S7', lat: 8.927561, lng: 125.557032, name: 'South Gap sub 7 (west)' },
-
+      
+      { id: 'S24', lat: 8.944680, lng: 125.543367, name: 'South Gap sub 24 (west)' },
         
       { id: 'S10', lat: 8.931793, lng: 125.548944, name: 'South Gap sub 10 (east)' },
       { id: 'S11', lat: 8.919436, lng: 125.551529, name: 'South Gap sub 11 (east)' },
@@ -50,7 +52,8 @@ class RouteRestrictionChecker {
        { id: 'S18', lat: 8.893598, lng: 125.557847, name: 'South Gap sub 18 (east)' },
        { id: 'S19', lat: 8.939874, lng: 125.522571, name: 'South Gap sub 19 (east)' },
        { id: 'S21', lat: 8.938498, lng: 125.539557, name: 'South Gap sub 21 (east)' },
-
+      { id: 'S22', lat: 8.921951, lng: 125.558273, name: 'South Gap sub 22 (east)' },
+      { id: 'S23', lat: 8.924467, lng: 125.562108, name: 'South Gap sub 23 (east)' }
      
     ]
 

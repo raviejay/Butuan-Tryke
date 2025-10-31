@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "builtAt": "2025-10-27T11:59:15.551Z",
+    "builtAt": "2025-10-31T13:44:45.354Z",
     "version": "1.0",
     "description": "Precomputed route graph for fast path finding"
   },
@@ -42,8 +42,8 @@
     },
     {
       "id": "N6",
-      "lat": 8.949574,
-      "lng": 125.543668,
+      "lat": 8.949248203494681,
+      "lng": 125.54365235221756,
       "name": "North Gap mid 2 (mid)",
       "side": "north"
     },
@@ -181,6 +181,13 @@
       "side": "south"
     },
     {
+      "id": "S24",
+      "lat": 8.94468,
+      "lng": 125.543367,
+      "name": "South Gap sub 24 (west)",
+      "side": "south"
+    },
+    {
       "id": "S10",
       "lat": 8.931793,
       "lng": 125.548944,
@@ -262,6 +269,20 @@
       "lat": 8.938498,
       "lng": 125.539557,
       "name": "South Gap sub 21 (east)",
+      "side": "south"
+    },
+    {
+      "id": "S22",
+      "lat": 8.921951,
+      "lng": 125.558273,
+      "name": "South Gap sub 22 (east)",
+      "side": "south"
+    },
+    {
+      "id": "S23",
+      "lat": 8.924467,
+      "lng": 125.562108,
+      "name": "South Gap sub 23 (east)",
       "side": "south"
     }
   ],
@@ -364,14 +385,6 @@
     },
     {
       "from": "N2",
-      "to": "N6",
-      "distance": 1143.5,
-      "duration": 148.8,
-      "violations": 0,
-      "cost": 1143.5
-    },
-    {
-      "from": "N2",
       "to": "N7",
       "distance": 415.4,
       "duration": 58.4,
@@ -412,6 +425,14 @@
     },
     {
       "from": "N2",
+      "to": "S1",
+      "distance": 1339.7,
+      "duration": 153.4,
+      "violations": 0,
+      "cost": 1339.7
+    },
+    {
+      "from": "N2",
       "to": "S2",
       "distance": 796.8,
       "duration": 91.7,
@@ -429,10 +450,10 @@
     {
       "from": "N3",
       "to": "N6",
-      "distance": 455.9,
-      "duration": 66,
+      "distance": 490.3,
+      "duration": 73.2,
       "violations": 0,
-      "cost": 455.9
+      "cost": 490.3
     },
     {
       "from": "N3",
@@ -521,14 +542,6 @@
       "duration": 150.5,
       "violations": 0,
       "cost": 1540.5
-    },
-    {
-      "from": "N4",
-      "to": "N6",
-      "distance": 2668.1,
-      "duration": 322.9,
-      "violations": 0,
-      "cost": 2668.1
     },
     {
       "from": "N4",
@@ -621,10 +634,10 @@
     {
       "from": "N5",
       "to": "N6",
-      "distance": 639.5,
-      "duration": 61.5,
+      "distance": 603.3,
+      "duration": 56.7,
       "violations": 0,
-      "cost": 639.5
+      "cost": 603.3
     },
     {
       "from": "N5",
@@ -668,6 +681,14 @@
     },
     {
       "from": "N5",
+      "to": "S24",
+      "distance": 680.5,
+      "duration": 80.1,
+      "violations": 0,
+      "cost": 680.5
+    },
+    {
+      "from": "N5",
       "to": "S14",
       "distance": 4938.1,
       "duration": 574.6,
@@ -707,100 +728,148 @@
       "cost": 8012.3
     },
     {
-      "from": "N6",
-      "to": "N7",
-      "distance": 857.2,
-      "duration": 111.9,
+      "from": "N5",
+      "to": "S22",
+      "distance": 4009.2,
+      "duration": 440.7,
       "violations": 0,
-      "cost": 857.2
+      "cost": 4009.2
+    },
+    {
+      "from": "N5",
+      "to": "S23",
+      "distance": 4044.7,
+      "duration": 358.5,
+      "violations": 0,
+      "cost": 4044.7
     },
     {
       "from": "N6",
-      "to": "N9",
-      "distance": 3858.4,
-      "duration": 430.8,
+      "to": "N7",
+      "distance": 893.4,
+      "duration": 116.7,
       "violations": 0,
-      "cost": 3858.4
+      "cost": 893.4
     },
     {
       "from": "N6",
       "to": "N12",
-      "distance": 517.7,
-      "duration": 90.6,
+      "distance": 196.2,
+      "duration": 22.1,
       "violations": 0,
-      "cost": 517.7
+      "cost": 196.2
     },
     {
       "from": "N6",
       "to": "N14",
-      "distance": 287.7,
-      "duration": 52.5,
+      "distance": 324,
+      "duration": 57.3,
       "violations": 0,
-      "cost": 287.7
+      "cost": 324
     },
     {
       "from": "N6",
       "to": "N16",
-      "distance": 1241.3,
-      "duration": 155,
+      "distance": 1277.6,
+      "duration": 159.8,
       "violations": 0,
-      "cost": 1241.3
+      "cost": 1277.6
     },
     {
       "from": "N6",
-      "to": "S3",
-      "distance": 1006.8,
-      "duration": 129.7,
+      "to": "S5",
+      "distance": 587.9,
+      "duration": 92.3,
       "violations": 0,
-      "cost": 1006.8
+      "cost": 587.9
     },
     {
       "from": "N6",
-      "to": "S10",
-      "distance": 3430.3,
-      "duration": 339.4,
+      "to": "S9",
+      "distance": 1709.9,
+      "duration": 153.2,
       "violations": 0,
-      "cost": 3430.3
+      "cost": 1709.9
     },
     {
       "from": "N6",
-      "to": "S11",
-      "distance": 4970.4,
-      "duration": 456.2,
+      "to": "S8",
+      "distance": 3016.7,
+      "duration": 271.1,
       "violations": 0,
-      "cost": 4970.4
+      "cost": 3016.7
     },
     {
       "from": "N6",
-      "to": "S12",
-      "distance": 3130.9,
-      "duration": 290.8,
+      "to": "S7",
+      "distance": 3976.6,
+      "duration": 409,
       "violations": 0,
-      "cost": 3130.9
+      "cost": 3976.6
     },
     {
       "from": "N6",
-      "to": "S20",
-      "distance": 5053.4,
-      "duration": 435,
+      "to": "S24",
+      "distance": 506.1,
+      "duration": 69.7,
       "violations": 0,
-      "cost": 5053.4
+      "cost": 506.1
     },
     {
       "from": "N6",
-      "to": "S13",
-      "distance": 6540.9,
-      "duration": 577.9,
+      "to": "S14",
+      "distance": 5541.4,
+      "duration": 634.5,
       "violations": 0,
-      "cost": 6540.9
+      "cost": 5541.4
     },
     {
       "from": "N6",
-      "to": "S21",
-      "distance": 1847.6,
-      "duration": 206.9,
+      "to": "S15",
+      "distance": 5876.7,
+      "duration": 529,
       "violations": 0,
-      "cost": 1847.6
+      "cost": 5876.7
+    },
+    {
+      "from": "N6",
+      "to": "S16",
+      "distance": 3949.2,
+      "duration": 355.5,
+      "violations": 0,
+      "cost": 3949.2
+    },
+    {
+      "from": "N6",
+      "to": "S17",
+      "distance": 7194.9,
+      "duration": 648.8,
+      "violations": 0,
+      "cost": 7194.9
+    },
+    {
+      "from": "N6",
+      "to": "S18",
+      "distance": 8615.5,
+      "duration": 775.2,
+      "violations": 0,
+      "cost": 8615.5
+    },
+    {
+      "from": "N6",
+      "to": "S22",
+      "distance": 4612.5,
+      "duration": 500.6,
+      "violations": 0,
+      "cost": 4612.5
+    },
+    {
+      "from": "N6",
+      "to": "S23",
+      "distance": 4648,
+      "duration": 418.4,
+      "violations": 0,
+      "cost": 4648
     },
     {
       "from": "N7",
@@ -833,6 +902,14 @@
       "duration": 43.1,
       "violations": 0,
       "cost": 384.1
+    },
+    {
+      "from": "N7",
+      "to": "S1",
+      "distance": 1714,
+      "duration": 204,
+      "violations": 0,
+      "cost": 1714
     },
     {
       "from": "N7",
@@ -964,6 +1041,14 @@
     },
     {
       "from": "N10",
+      "to": "S24",
+      "distance": 821,
+      "duration": 120,
+      "violations": 0,
+      "cost": 821
+    },
+    {
+      "from": "N10",
       "to": "S10",
       "distance": 3132.8,
       "duration": 298.7,
@@ -1025,6 +1110,14 @@
       "duration": 166.2,
       "violations": 0,
       "cost": 1550
+    },
+    {
+      "from": "N10",
+      "to": "S22",
+      "distance": 4927.4,
+      "duration": 550.9,
+      "violations": 0,
+      "cost": 4927.4
     },
     {
       "from": "N8",
@@ -1156,6 +1249,14 @@
     },
     {
       "from": "N12",
+      "to": "S24",
+      "distance": 310,
+      "duration": 47.6,
+      "violations": 0,
+      "cost": 310
+    },
+    {
+      "from": "N12",
       "to": "S14",
       "distance": 5345.3,
       "duration": 612.4,
@@ -1193,6 +1294,22 @@
       "duration": 753.1,
       "violations": 0,
       "cost": 8419.4
+    },
+    {
+      "from": "N12",
+      "to": "S22",
+      "distance": 4416.3,
+      "duration": 478.5,
+      "violations": 0,
+      "cost": 4416.3
+    },
+    {
+      "from": "N12",
+      "to": "S23",
+      "distance": 4451.9,
+      "duration": 396.3,
+      "violations": 0,
+      "cost": 4451.9
     },
     {
       "from": "N13",
@@ -1273,14 +1390,6 @@
       "duration": 450,
       "violations": 0,
       "cost": 4904
-    },
-    {
-      "from": "N16",
-      "to": "S1",
-      "distance": 2085.1,
-      "duration": 246.6,
-      "violations": 0,
-      "cost": 2085.1
     },
     {
       "from": "N16",
@@ -1708,6 +1817,14 @@
     },
     {
       "from": "S5",
+      "to": "S24",
+      "distance": 222.5,
+      "duration": 43.4,
+      "violations": 0,
+      "cost": 222.5
+    },
+    {
+      "from": "S5",
       "to": "S14",
       "distance": 5391.8,
       "duration": 621.2,
@@ -1745,6 +1862,22 @@
       "duration": 761.9,
       "violations": 0,
       "cost": 8465.9
+    },
+    {
+      "from": "S5",
+      "to": "S22",
+      "distance": 4462.9,
+      "duration": 487.3,
+      "violations": 0,
+      "cost": 4462.9
+    },
+    {
+      "from": "S5",
+      "to": "S23",
+      "distance": 4498.4,
+      "duration": 405.1,
+      "violations": 0,
+      "cost": 4498.4
     },
     {
       "from": "S6",
@@ -1820,6 +1953,14 @@
     },
     {
       "from": "S9",
+      "to": "S24",
+      "distance": 1787.2,
+      "duration": 176.2,
+      "violations": 0,
+      "cost": 1787.2
+    },
+    {
+      "from": "S9",
       "to": "S14",
       "distance": 3831.5,
       "duration": 481.3,
@@ -1859,12 +2000,36 @@
       "cost": 6905.6
     },
     {
+      "from": "S9",
+      "to": "S22",
+      "distance": 2902.5,
+      "duration": 347.4,
+      "violations": 0,
+      "cost": 2902.5
+    },
+    {
+      "from": "S9",
+      "to": "S23",
+      "distance": 2938.1,
+      "duration": 265.2,
+      "violations": 0,
+      "cost": 2938.1
+    },
+    {
       "from": "S8",
       "to": "S7",
       "distance": 959.9,
       "duration": 137.9,
       "violations": 0,
       "cost": 959.9
+    },
+    {
+      "from": "S8",
+      "to": "S24",
+      "distance": 3094,
+      "duration": 294.1,
+      "violations": 0,
+      "cost": 3094
     },
     {
       "from": "S8",
@@ -1907,20 +2072,36 @@
       "cost": 5598.8
     },
     {
+      "from": "S8",
+      "to": "S22",
+      "distance": 1595.8,
+      "duration": 229.5,
+      "violations": 0,
+      "cost": 1595.8
+    },
+    {
+      "from": "S8",
+      "to": "S23",
+      "distance": 1631.3,
+      "duration": 147.3,
+      "violations": 0,
+      "cost": 1631.3
+    },
+    {
+      "from": "S7",
+      "to": "S24",
+      "distance": 4053.9,
+      "duration": 432,
+      "violations": 0,
+      "cost": 4053.9
+    },
+    {
       "from": "S7",
       "to": "S14",
       "distance": 1564.8,
       "duration": 225.5,
       "violations": 0,
       "cost": 1564.8
-    },
-    {
-      "from": "S7",
-      "to": "S15",
-      "distance": 2122.4,
-      "duration": 238.8,
-      "violations": 0,
-      "cost": 2122.4
     },
     {
       "from": "S7",
@@ -1932,19 +2113,99 @@
     },
     {
       "from": "S7",
-      "to": "S17",
-      "distance": 3440.5,
-      "duration": 358.6,
+      "to": "S22",
+      "distance": 635.9,
+      "duration": 91.6,
       "violations": 0,
-      "cost": 3440.5
+      "cost": 635.9
     },
     {
       "from": "S7",
-      "to": "S18",
-      "distance": 4861.2,
-      "duration": 485,
+      "to": "S23",
+      "distance": 901.3,
+      "duration": 128.8,
       "violations": 0,
-      "cost": 4861.2
+      "cost": 901.3
+    },
+    {
+      "from": "S24",
+      "to": "S10",
+      "distance": 2010.2,
+      "duration": 263.3,
+      "violations": 0,
+      "cost": 2010.2
+    },
+    {
+      "from": "S24",
+      "to": "S11",
+      "distance": 4331.1,
+      "duration": 399.7,
+      "violations": 0,
+      "cost": 4331.1
+    },
+    {
+      "from": "S24",
+      "to": "S12",
+      "distance": 2491.6,
+      "duration": 234.3,
+      "violations": 0,
+      "cost": 2491.6
+    },
+    {
+      "from": "S24",
+      "to": "S20",
+      "distance": 4414.1,
+      "duration": 378.5,
+      "violations": 0,
+      "cost": 4414.1
+    },
+    {
+      "from": "S24",
+      "to": "S13",
+      "distance": 5901.6,
+      "duration": 521.4,
+      "violations": 0,
+      "cost": 5901.6
+    },
+    {
+      "from": "S24",
+      "to": "S14",
+      "distance": 5618.5,
+      "duration": 665.9,
+      "violations": 0,
+      "cost": 5618.5
+    },
+    {
+      "from": "S24",
+      "to": "S16",
+      "distance": 4026.3,
+      "duration": 386.9,
+      "violations": 0,
+      "cost": 4026.3
+    },
+    {
+      "from": "S24",
+      "to": "S19",
+      "distance": 2644.9,
+      "duration": 344.3,
+      "violations": 0,
+      "cost": 2644.9
+    },
+    {
+      "from": "S24",
+      "to": "S21",
+      "distance": 1208.3,
+      "duration": 150.4,
+      "violations": 0,
+      "cost": 1208.3
+    },
+    {
+      "from": "S24",
+      "to": "S22",
+      "distance": 4689.5,
+      "duration": 532,
+      "violations": 0,
+      "cost": 4689.5
     },
     {
       "from": "S10",
@@ -2139,6 +2400,22 @@
       "cost": 2624
     },
     {
+      "from": "S14",
+      "to": "S22",
+      "distance": 928.9,
+      "duration": 133.9,
+      "violations": 0,
+      "cost": 928.9
+    },
+    {
+      "from": "S14",
+      "to": "S23",
+      "distance": 1910.6,
+      "duration": 272.4,
+      "violations": 0,
+      "cost": 1910.6
+    },
+    {
       "from": "S15",
       "to": "S16",
       "distance": 1927.5,
@@ -2163,6 +2440,14 @@
       "cost": 2738.8
     },
     {
+      "from": "S15",
+      "to": "S23",
+      "distance": 1228.7,
+      "duration": 110.6,
+      "violations": 0,
+      "cost": 1228.7
+    },
+    {
       "from": "S16",
       "to": "S17",
       "distance": 3245.6,
@@ -2179,6 +2464,22 @@
       "cost": 4666.3
     },
     {
+      "from": "S16",
+      "to": "S22",
+      "distance": 1397.8,
+      "duration": 179.1,
+      "violations": 0,
+      "cost": 1397.8
+    },
+    {
+      "from": "S16",
+      "to": "S23",
+      "distance": 698.8,
+      "duration": 62.9,
+      "violations": 0,
+      "cost": 698.8
+    },
+    {
       "from": "S17",
       "to": "S18",
       "distance": 1449,
@@ -2187,12 +2488,52 @@
       "cost": 1449
     },
     {
+      "from": "S17",
+      "to": "S22",
+      "distance": 2166.5,
+      "duration": 313.9,
+      "violations": 0,
+      "cost": 2166.5
+    },
+    {
+      "from": "S17",
+      "to": "S23",
+      "distance": 2546.8,
+      "duration": 232.3,
+      "violations": 0,
+      "cost": 2546.8
+    },
+    {
+      "from": "S18",
+      "to": "S22",
+      "distance": 3553,
+      "duration": 446.7,
+      "violations": 0,
+      "cost": 3553
+    },
+    {
+      "from": "S18",
+      "to": "S23",
+      "distance": 3967.5,
+      "duration": 356.8,
+      "violations": 0,
+      "cost": 3967.5
+    },
+    {
       "from": "S19",
       "to": "S21",
       "distance": 2364.5,
       "duration": 314.9,
       "violations": 0,
       "cost": 2364.5
+    },
+    {
+      "from": "S22",
+      "to": "S23",
+      "distance": 981.7,
+      "duration": 138.5,
+      "violations": 0,
+      "cost": 981.7
     }
   ]
 }

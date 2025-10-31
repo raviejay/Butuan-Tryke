@@ -37,14 +37,13 @@ class FastRouteRestrictionChecker {
       this.waypointMap.set(node.id, node);
     });
 
-
-    this.northWaypoints = [
+  this.northWaypoints = [
       { id: 'N1', lat: 8.948823, lng: 125.530714, name: 'North Gap 1 (west)' },
       { id: 'N2', lat: 8.950436, lng: 125.534950, name: 'North Gap 2 (mid)' },
       { id: 'N3', lat: 8.950918, lng: 125.540935, name: 'North Gap 3 (east)' },
       { id: 'N4', lat: 8.958513, lng: 125.527187, name: 'North Gap SUB 1 (East)' },
       { id: 'N5', lat: 8.948280, lng: 125.546785, name: 'North Gap mid 1 (mid)' },
-      { id: 'N6', lat: 8.949574, lng: 125.543668, name: 'North Gap mid 2 (mid)' },
+      { id: 'N6', lat: 8.949248203494681, lng: 125.54365235221756, name: 'North Gap mid 2 (mid)' },
       { id: 'N7', lat: 8.951750, lng: 125.537656, name: 'North Gap mid 3 (mid)' },
       { id: 'N10', lat: 8.948201, lng: 125.542222, name: 'North Gap sub 6 (west)' },
       
@@ -56,7 +55,7 @@ class FastRouteRestrictionChecker {
       { id: 'N14', lat: 8.950832, lng:  125.542432, name: 'North Gap mid 14 (mid)' },
       { id: 'N15', lat: 8.951813, lng:  125.502273, name: 'North Gap mid 15 (mid)' },
       { id: 'N16', lat: 8.955031, lng:  125.536584, name: 'North Gap mid 16 (mid)' },
-      
+
     ]
     
     this.southWaypoints = [
@@ -75,7 +74,7 @@ class FastRouteRestrictionChecker {
       { id: 'S11', lat: 8.919436, lng: 125.551529, name: 'South Gap sub 11 (east)' },
       { id: 'S12', lat: 8.925532, lng: 125.539604, name: 'South Gap sub 12 (west)' },
 
-   
+      { id: 'S24', lat: 8.944680, lng: 125.543367, name: 'South Gap sub 24 (west)' },
        { id: 'S20', lat: 8.909333, lng: 125.545842, name: 'South Gap sub 20 (east)' },
       { id: 'S13', lat:  8.903923, lng: 125.554850, name: 'South Gap sub 13 (east)' },
        { id: 'S14', lat: 8.914116, lng: 125.561223, name: 'South Gap sub 14 (east)' },
@@ -87,7 +86,8 @@ class FastRouteRestrictionChecker {
        { id: 'S18', lat: 8.893598, lng: 125.557847, name: 'South Gap sub 18 (east)' },
        { id: 'S19', lat: 8.939874, lng: 125.522571, name: 'South Gap sub 19 (east)' },
        { id: 'S21', lat: 8.938498, lng: 125.539557, name: 'South Gap sub 21 (east)' },
-
+      { id: 'S22', lat: 8.921951, lng: 125.558273, name: 'South Gap sub 22 (east)' },
+      { id: 'S23', lat: 8.924467, lng: 125.562108, name: 'South Gap sub 23 (east)' }
      
     ]
 
@@ -127,7 +127,7 @@ class FastRouteRestrictionChecker {
       if (edge.violations === 0) {
         list.get(edge.from).push({
           node: edge.to,
-          cost: edge.distance, // Use pure distance as cost
+          cost: edge.distance + (edge.violations * 5000), // Use pure distance as cost
           distance: edge.distance
         });
         
@@ -144,75 +144,163 @@ class FastRouteRestrictionChecker {
 
 async findOptimalWaypoints(startPoint, endPoint, violations = []) {
   console.log('\n=== FAST ROUTE OPTIMIZATION ===');
-  console.log('🚀 Using precomputed graph with ZERO-VIOLATION requirement...');
-
-  // Find connections
-  const startConnections = await this.findNearbyPrecomputedNodes(startPoint, 5);
-  const endConnections = await this.findNearbyPrecomputedNodes(endPoint, 5);
   
-  if (startConnections.length === 0 || endConnections.length === 0) {
-    console.warn('⚠️ Could not find safe connections from start/end points');
+  // PHASE 1: Try STRICT zero-violation mode first
+  console.log('🚀 PHASE 1: Using precomputed graph with ZERO-VIOLATION requirement...');
+  
+  const strictStartConnections = await this.findNearbyPrecomputedNodes(startPoint, 5, false);
+  const strictEndConnections = await this.findNearbyPrecomputedNodes(endPoint, 5, false);
+  
+  if (strictStartConnections.length > 0 && strictEndConnections.length > 0) {
+    console.log(`   ✅ Start has ${strictStartConnections.length} safe connections`);
+    console.log(`   ✅ End has ${strictEndConnections.length} safe connections`);
+
+    let bestStrictResult = { path: [], totalCost: Infinity, hopCount: Infinity };
+    
+    for (const startConn of strictStartConnections.slice(0, 3)) {
+      for (const endConn of strictEndConnections.slice(0, 3)) {
+        const enhancedList = this.buildEnhancedGraph(startPoint, endPoint, [startConn], [endConn]);
+        const result = this.runDijkstra(enhancedList, 'start', 'end');
+        
+        if (result.path.length > 0) {
+          const isPathSafe = await this.verifyCompletePathStrict(startPoint, result.path, endPoint);
+          
+          if (isPathSafe) {
+            const costDiff = (result.totalCost - bestStrictResult.totalCost) / bestStrictResult.totalCost;
+            if (result.totalCost < bestStrictResult.totalCost || 
+                (Math.abs(costDiff) < 0.2 && result.hopCount < bestStrictResult.hopCount)) {
+              bestStrictResult = result;
+              console.log(`      ✅ Found violation-free path through ${result.path.length} waypoints`);
+            }
+          }
+        }
+      }
+    }
+    
+    if (bestStrictResult.path.length > 0) {
+      console.log(`🏆 Optimal violation-free path found!`);
+      console.log(`   📍 Waypoints: ${bestStrictResult.path.length}`);
+      console.log(`   🔢 Hops: ${bestStrictResult.hopCount}`);
+      console.log(`   📏 Total distance: ${(bestStrictResult.totalCost / 1000).toFixed(2)}km`);
+      return bestStrictResult.path;
+    }
+  }
+  
+  // PHASE 2: Use the precomputed graph WITH violations allowed, but still find multi-waypoint paths
+  console.log('⚠️ PHASE 2: No zero-violation path found, using graph with minimal violations...');
+  
+  const fallbackStartConnections = await this.findNearbyPrecomputedNodes(startPoint, 5, true);
+  const fallbackEndConnections = await this.findNearbyPrecomputedNodes(endPoint, 5, true);
+  
+  if (fallbackStartConnections.length === 0 || fallbackEndConnections.length === 0) {
+    console.warn('⚠️ Could not find any connections from start/end points');
     return [];
   }
 
-  console.log(`   ✅ Start has ${startConnections.length} safe connections`);
-  console.log(`   ✅ End has ${endConnections.length} safe connections`);
+  console.log(`   ✅ Start has ${fallbackStartConnections.length} connections`);
+  console.log(`   ✅ End has ${fallbackEndConnections.length} connections`);
 
-  // Try multiple start-end combinations
-  let bestResult = { path: [], totalCost: Infinity, hopCount: Infinity };
+  // CRITICAL FIX: Build enhanced graph with ALL fallback connections and run Dijkstra
+  const enhancedList = this.buildEnhancedGraph(startPoint, endPoint, fallbackStartConnections, fallbackEndConnections);
+  const dijkstraResult = this.runDijkstra(enhancedList, 'start', 'end');
   
-  for (const startConn of startConnections.slice(0, 3)) {
-    for (const endConn of endConnections.slice(0, 3)) {
-      const enhancedList = this.buildEnhancedGraph(startPoint, endPoint, [startConn], [endConn]);
-      const result = this.runDijkstra(enhancedList, 'start', 'end');
+  if (dijkstraResult.path.length > 0) {
+    // Count violations for this multi-waypoint path
+    const pathViolations = await this.countPathViolations(startPoint, dijkstraResult.path, endPoint);
+    
+    console.log(`⚠️ Best graph path found (${pathViolations} violations):`);
+    console.log(`   📍 Waypoints: ${dijkstraResult.path.length}`);
+    console.log(`   🔢 Hops: ${dijkstraResult.hopCount}`);
+    console.log(`   📏 Total distance: ${(dijkstraResult.totalCost / 1000).toFixed(2)}km`);
+    
+    // Log the actual path for debugging
+    const pathIds = dijkstraResult.path.map(point => this.findWaypointId(point)).join(' → ');
+    console.log(`   🗺️ Path: START → ${pathIds} → END`);
+    
+    return dijkstraResult.path;
+  }
+  
+  // FALLBACK: If no graph path found, try single waypoint approach
+  console.log('⚠️ No graph path found, trying single waypoint fallback...');
+  let bestSingleResult = { path: [], totalCost: Infinity, violations: Infinity };
+  
+  for (const startConn of fallbackStartConnections.slice(0, 3)) {
+    for (const endConn of fallbackEndConnections.slice(0, 3)) {
+      // Test direct path: start → waypoint → end
+      const testPath = [this.waypointMap.get(startConn.node)];
+      const pathViolations = await this.countPathViolations(startPoint, testPath, endPoint);
       
-      // ⚠️ CRITICAL: Verify the complete path before accepting it
-      if (result.path.length > 0) {
-        const isPathSafe = await this.verifyCompletePath(startPoint, result.path, endPoint);
-        
-        if (isPathSafe) {
-          const costDiff = (result.totalCost - bestResult.totalCost) / bestResult.totalCost;
-          if (result.totalCost < bestResult.totalCost || 
-              (Math.abs(costDiff) < 0.2 && result.hopCount < bestResult.hopCount)) {
-            bestResult = result;
-          }
-        } else {
-          console.log(`      ❌ Path through ${result.path.map(p => this.findWaypointId(p)).join(' → ')} has violations in final segments`);
-        }
+      if (pathViolations < bestSingleResult.violations || 
+          (pathViolations === bestSingleResult.violations && startConn.distance + endConn.distance < bestSingleResult.totalCost)) {
+        bestSingleResult = {
+          path: testPath,
+          totalCost: startConn.distance + endConn.distance,
+          violations: pathViolations
+        };
+        console.log(`      ⚠️ Single waypoint ${startConn.node}: ${pathViolations} violations`);
       }
     }
   }
   
-  if (bestResult.path.length > 0) {
-    console.log(`🏆 Optimal violation-free path found!`);
-    console.log(`   📍 Waypoints: ${bestResult.path.length}`);
-    console.log(`   🔢 Hops: ${bestResult.hopCount}`);
-    console.log(`   📏 Total distance: ${(bestResult.totalCost / 1000).toFixed(2)}km`);
-  } else {
-    console.log('❌ No violation-free path found');
+  if (bestSingleResult.path.length > 0) {
+    console.log(`⚠️ Best single waypoint (${bestSingleResult.violations} violations):`);
+    console.log(`   📍 Waypoints: 1`);
+    console.log(`   📏 Total distance: ${(bestSingleResult.totalCost / 1000).toFixed(2)}km`);
+    return bestSingleResult.path;
   }
   
-  return bestResult.path;
+  console.log('❌ No viable path found');
+  return [];
 }
-
-// NEW METHOD: Verify the complete path including all segments
-async verifyCompletePath(startPoint, waypoints, endPoint) {
+// NEW METHOD: Strict verification that rejects ANY violations
+async verifyCompletePathStrict(startPoint, waypoints, endPoint) {
   const fullPath = [startPoint, ...waypoints, endPoint];
   
-  // Test each consecutive segment
   for (let i = 0; i < fullPath.length - 1; i++) {
     const segmentTest = await this.testPathWithOSRM([fullPath[i], fullPath[i + 1]]);
     
     if (segmentTest.violations > 0) {
       const fromId = i === 0 ? 'START' : this.findWaypointId(fullPath[i]);
       const toId = i === fullPath.length - 2 ? 'END' : this.findWaypointId(fullPath[i + 1]);
-      console.log(`      ❌ Segment ${fromId} → ${toId}: ${segmentTest.violations} violations`);
+      console.log(`      ❌ Strict: Segment ${fromId} → ${toId} has ${segmentTest.violations} violations - REJECTED`);
       return false;
     }
   }
   
   return true;
 }
+
+// NEW METHOD: Count total violations in a path
+async countPathViolations(startPoint, waypoints, endPoint) {
+  const fullPath = [startPoint, ...waypoints, endPoint];
+  let totalViolations = 0;
+  
+  for (let i = 0; i < fullPath.length - 1; i++) {
+    const segmentTest = await this.testPathWithOSRM([fullPath[i], fullPath[i + 1]]);
+    totalViolations += segmentTest.violations;
+  }
+  
+  return totalViolations;
+}
+
+// NEW METHOD: Verify the complete path including all segments
+// async verifyCompletePath(startPoint, waypoints, endPoint) {
+//   const fullPath = [startPoint, ...waypoints, endPoint];
+  
+//   // Test each consecutive segment
+//   for (let i = 0; i < fullPath.length - 1; i++) {
+//     const segmentTest = await this.testPathWithOSRM([fullPath[i], fullPath[i + 1]]);
+    
+//     if (segmentTest.violations > 0) {
+//       const fromId = i === 0 ? 'START' : this.findWaypointId(fullPath[i]);
+//       const toId = i === fullPath.length - 2 ? 'END' : this.findWaypointId(fullPath[i + 1]);
+//       console.log(`      ❌ Segment ${fromId} → ${toId}: ${segmentTest.violations} violations`);
+//       return false;
+//     }
+//   }
+  
+//   return true;
+// }
 
 // Helper to find waypoint ID from coordinates
 findWaypointId(coords) {
@@ -234,7 +322,7 @@ findWaypointId(coords) {
       if (enhancedList.has(conn.node)) {
         enhancedList.get(conn.node).push({ 
           node: 'start', 
-          cost: conn.cost,
+          cost: conn.distance + (conn.violations * 5000),
           distance: conn.distance 
         });
       }
@@ -245,7 +333,7 @@ findWaypointId(coords) {
       if (enhancedList.has(conn.node)) {
         enhancedList.get(conn.node).push({ 
           node: 'end', 
-          cost: conn.cost,
+          cost: conn.distance + (conn.violations * 5000),
           distance: conn.distance 
         });
       }
@@ -254,42 +342,42 @@ findWaypointId(coords) {
     return enhancedList;
   }
 
-  async findNearbyPrecomputedNodes(point, maxConnections = 5) {
-    // Calculate straight-line distances to all precomputed nodes
-    const nodesWithDistances = this.precomputedGraph.nodes.map(node => ({
-      ...node,
-      straightDistance: this.calculateDistance(point, [node.lat, node.lng])
-    })).sort((a, b) => a.straightDistance - b.straightDistance);
+  // async findNearbyPrecomputedNodes(point, maxConnections = 5) {
+  //   // Calculate straight-line distances to all precomputed nodes
+  //   const nodesWithDistances = this.precomputedGraph.nodes.map(node => ({
+  //     ...node,
+  //     straightDistance: this.calculateDistance(point, [node.lat, node.lng])
+  //   })).sort((a, b) => a.straightDistance - b.straightDistance);
     
-    const connections = [];
+  //   const connections = [];
     
-    // Test routes to nearest nodes - ONLY accept zero-violation paths
-    for (const node of nodesWithDistances.slice(0, maxConnections * 3)) {
-      try {
-        const test = await this.testPathWithOSRM([point, [node.lat, node.lng]]);
+  //   // Test routes to nearest nodes - ONLY accept zero-violation paths
+  //   for (const node of nodesWithDistances.slice(0, maxConnections * 3)) {
+  //     try {
+  //       const test = await this.testPathWithOSRM([point, [node.lat, node.lng]]);
         
-        // CRITICAL: Only accept paths with ZERO violations
-        if (test.valid && !test.error && test.violations === 0) {
-          connections.push({
-            node: node.id,
-            cost: test.distance,
-            distance: test.distance,
-            violations: 0
-          });
+  //       // CRITICAL: Only accept paths with ZERO violations
+  //       if (test.valid && !test.error && test.violations === 0) {
+  //         connections.push({
+  //           node: node.id,
+  //           cost: test.distance,
+  //           distance: test.distance,
+  //           violations: 0
+  //         });
           
-          console.log(`      ✅ Safe connection to ${node.id}: ${(test.distance/1000).toFixed(2)}km`);
+  //         console.log(`      ✅ Safe connection to ${node.id}: ${(test.distance/1000).toFixed(2)}km`);
           
-          if (connections.length >= maxConnections) break;
-        } else if (test.violations > 0) {
-          console.log(`      ❌ ${node.id} has ${test.violations} violations - rejected`);
-        }
-      } catch (error) {
-        console.warn(`      ⚠️ Failed to test connection to ${node.id}:`, error.message);
-      }
-    }
+  //         if (connections.length >= maxConnections) break;
+  //       } else if (test.violations > 0) {
+  //         console.log(`      ❌ ${node.id} has ${test.violations} violations - rejected`);
+  //       }
+  //     } catch (error) {
+  //       console.warn(`      ⚠️ Failed to test connection to ${node.id}:`, error.message);
+  //     }
+  //   }
     
-    return connections;
-  }
+  //   return connections;
+  // }
 
   runDijkstra(adjacencyList, startId, endId) {
     const distances = new Map();
@@ -359,34 +447,184 @@ findWaypointId(coords) {
     };
   }
 
-  async testPathWithOSRM(waypoints) {
-    try {
-      const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';');
-      const url = `https://router.project-osrm.org/route/v1/driving/${waypointString}?geometries=geojson&overview=full`;
+  // async testPathWithOSRM(waypoints) {
+  //   try {
+  //     const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';');
+  //     const url = `https://router.project-osrm.org/route/v1/driving/${waypointString}?geometries=geojson&overview=full`;
       
-      const response = await fetch(url);
-      if (!response.ok) return { valid: false, error: 'OSRM failed' };
+  //     const response = await fetch(url);
+  //     if (!response.ok) return { valid: false, error: 'OSRM failed' };
       
-      const data = await response.json();
-      if (!data.routes || data.routes.length === 0) {
-        return { valid: false, error: 'No route found' };
+  //     const data = await response.json();
+  //     if (!data.routes || data.routes.length === 0) {
+  //       return { valid: false, error: 'No route found' };
+  //     }
+      
+  //     const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+  //     const check = this.checkRouteIntersection(routeCoords);
+      
+  //     return { 
+  //       valid: check.violations.length === 0, // Only valid if ZERO violations
+  //       violations: check.violations.length,
+  //       routeCoords,
+  //       distance: data.routes[0].distance,
+  //       duration: data.routes[0].duration
+  //     };
+  //   } catch (error) {
+  //     console.error('OSRM test error:', error);
+  //     return { valid: false, error: error.message };
+  //   }
+  // }
+
+
+
+  // FIXED METHOD 1: Update verifyCompletePath with better logging
+async verifyCompletePath(startPoint, waypoints, endPoint) {
+  const fullPath = [startPoint, ...waypoints, endPoint];
+  
+  console.log(`\n🔍 Verifying complete path (${fullPath.length} points)...`);
+  
+  for (let i = 0; i < fullPath.length - 1; i++) {
+    const segmentTest = await this.testPathWithOSRM([fullPath[i], fullPath[i + 1]]);
+    
+    // Identify segment type
+    const isEntrySegment = i === 0;
+    const isExitSegment = i === fullPath.length - 2;
+    const segmentType = isEntrySegment ? 'ENTRY' : isExitSegment ? 'EXIT' : 'TRANSIT';
+    
+    const fromId = i === 0 ? 'START' : this.findWaypointId(fullPath[i]);
+    const toId = i === fullPath.length - 2 ? 'END' : this.findWaypointId(fullPath[i + 1]);
+    
+    // Log segment details
+    if (segmentTest.violations > 0) {
+      if (!isEntrySegment && !isExitSegment) {
+        console.log(`      ❌ ${segmentType} segment ${fromId} → ${toId}: ${segmentTest.violations} violations (NOT ALLOWED)`);
+        return false;
+      } else {
+        console.log(`      ⚠️ ${segmentType} segment ${fromId} → ${toId}: ${segmentTest.violations} violations (ALLOWED)`);
       }
-      
-      const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-      const check = this.checkRouteIntersection(routeCoords);
-      
-      return { 
-        valid: check.violations.length === 0, // Only valid if ZERO violations
-        violations: check.violations.length,
-        routeCoords,
-        distance: data.routes[0].distance,
-        duration: data.routes[0].duration
-      };
-    } catch (error) {
-      console.error('OSRM test error:', error);
-      return { valid: false, error: error.message };
+    } else {
+      console.log(`      ✅ ${segmentType} segment ${fromId} → ${toId}: Clean`);
     }
   }
+  
+  console.log(`✅ Path verification complete: PASSED`);
+  return true;
+}
+
+// FIXED METHOD 2: Update findNearbyPrecomputedNodes with better error handling
+async findNearbyPrecomputedNodes(point, maxConnections = 5, allowViolations = false) {
+  console.log(`\n🔎 Finding nearby nodes (allowViolations: ${allowViolations})...`);
+  
+  const VIOLATION_PENALTY = 5000; // Must match buildAdjacencyList
+  
+  const nodesWithDistances = this.precomputedGraph.nodes.map(node => ({
+    ...node,
+    straightDistance: this.calculateDistance(point, [node.lat, node.lng])
+  })).sort((a, b) => a.straightDistance - b.straightDistance);
+  
+  const connections = [];
+  const maxAttempts = maxConnections * 3;
+  
+  for (let i = 0; i < Math.min(maxAttempts, nodesWithDistances.length); i++) {
+    const node = nodesWithDistances[i];
+    
+    try {
+      const test = await this.testPathWithOSRM([point, [node.lat, node.lng]]);
+      
+      let isAcceptable = false;
+      
+      if (allowViolations) {
+        isAcceptable = test.valid && !test.error;
+      } else {
+        isAcceptable = test.valid && !test.error && test.violations === 0;
+      }
+      
+      if (isAcceptable) {
+        connections.push({
+          node: node.id,
+          cost: test.distance + (test.violations * VIOLATION_PENALTY), // ✅ ADD PENALTY
+          distance: test.distance,
+          violations: test.violations
+        });
+        
+        const distanceKm = (test.distance / 1000).toFixed(2);
+        const effectiveCostKm = ((test.distance + (test.violations * VIOLATION_PENALTY)) / 1000).toFixed(2);
+        
+        if (test.violations > 0) {
+          console.log(`      ⚠️ ${node.id}: ${distanceKm}km, ${test.violations} violations, effective cost: ${effectiveCostKm}km (${allowViolations ? 'ACCEPTED' : 'REJECTED'})`);
+        } else {
+          console.log(`      ✅ ${node.id}: ${distanceKm}km, clean route`);
+        }
+        
+        if (connections.length >= maxConnections) {
+          console.log(`   ✅ Found ${connections.length} connections`);
+          break;
+        }
+      } else {
+        if (test.error) {
+          console.log(`      ❌ ${node.id}: ERROR - ${test.error}`);
+        } else if (!allowViolations && test.violations > 0) {
+          console.log(`      ❌ ${node.id}: ${test.violations} violations (strict mode)`);
+        }
+      }
+    } catch (error) {
+      console.warn(`      ⚠️ ${node.id}: Failed - ${error.message}`);
+    }
+  }
+  
+  if (connections.length === 0) {
+    console.warn(`   ⚠️ No connections found! (tried ${maxAttempts} nodes)`);
+  }
+  
+  return connections;
+}
+
+// FIXED METHOD 3: Update testPathWithOSRM to handle errors better
+async testPathWithOSRM(waypoints) {
+  try {
+    const waypointString = waypoints.map(p => `${p[1]},${p[0]}`).join(';');
+    const url = `https://router.project-osrm.org/route/v1/driving/${waypointString}?geometries=geojson&overview=full`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`OSRM HTTP Error: ${response.status}`);
+      return { valid: false, error: `HTTP ${response.status}` };
+    }
+    
+    const data = await response.json();
+    
+    if (!data.routes || data.routes.length === 0) {
+      console.error('OSRM returned no routes');
+      return { valid: false, error: 'No route found' };
+    }
+    
+    if (data.code !== 'Ok') {
+      console.error(`OSRM error code: ${data.code}`);
+      return { valid: false, error: data.code };
+    }
+    
+    const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+    const check = this.checkRouteIntersection(routeCoords);
+    
+    return { 
+      valid: true, // Route exists
+      violations: check.violations.length,
+      routeCoords,
+      distance: data.routes[0].distance,
+      duration: data.routes[0].duration,
+      error: null
+    };
+  } catch (error) {
+    console.error('OSRM test error:', error);
+    return { 
+      valid: false, 
+      error: error.message || 'Unknown error',
+      violations: 0 
+    };
+  }
+}
 
   checkRouteIntersection(routeCoordinates) {
     const violations = [];
