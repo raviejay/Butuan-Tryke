@@ -14,10 +14,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.55.0",
+    "@turf/turf": "^7.2.0",
     "chart.js": "^4.5.0",
+    "graphlib": "^2.1.8",
     "leaflet": "^1.9.4",
     "material-icons": "^1.13.14",
     "material-symbols": "^0.34.1",
+    "openrouteservice-js": "^0.4.1",
     "pinia": "^3.0.3",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"

@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-gray-100 z-50">
+  <div class="fixed inset-0 bg-gray-100 z-[9999]">
     <div class="flex h-full">
       <!-- Sidebar -->
       <AdminSidebar
@@ -161,6 +161,12 @@
 
             <!-- Route Zones Section -->
             <ManageRouteZones v-if="activeSection === 'routes'" @zone-updated="handleZoneUpdated" />
+
+            <!-- Fare Management Section -->
+            <ManageFare 
+              v-if="activeSection === 'fare-management'" 
+              @show-alert="showAlert"
+            />
           </div>
         </div>
       </div>
@@ -235,6 +241,8 @@ import ManageReviews from './ManageReviews.vue'
 import ManageReports from './ManageReports.vue'
 import AdminModal from './AdminModal.vue'
 import ManageRouteZones from './ManageRouteZones.vue'
+import ManageFare from './ManageFare.vue'
+
 
 // Props
 const props = defineProps({
@@ -345,6 +353,7 @@ const getSectionTitle = () => {
     reviews: 'Review Management',
     reports: 'Report Management',
     routes: 'Route Zone Management',
+    'fare-management': 'Fare Management',
   }
   return titles[activeSection.value] || 'Dashboard'
 }

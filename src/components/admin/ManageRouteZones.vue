@@ -1,5 +1,21 @@
 <template>
   <div class="space-y-6">
+    <!-- Custom Alert Component -->
+    <CustomAlert
+      :message="alertMessage"
+      :icon="alertIcon"
+      :duration="alertDuration"
+      @hide="hideAlert"
+    />
+     <CustomConfirm
+      :show="showDeleteConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      @confirm="handleDeleteConfirm"
+      @cancel="handleDeleteCancel"
+      @close="showDeleteConfirm = false"
+    />
+
     <!-- Header with Upload Button -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
@@ -23,106 +39,100 @@
     </div>
 
     <!-- Zone Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div
-        v-for="zone in routeZones"
-        :key="zone.zone_type"
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div
+    v-for="zone in routeZones"
+    :key="zone.zone_type"
+    class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-start hover:shadow-md transition"
+  >
+    <!-- Left Icon -->
+     <div 
+        class="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-lg shadow-inner"
+        :style="{ backgroundColor: getZoneBackgroundColor(zone.zone_type) }"
       >
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center space-x-2">
-            <div
-              :style="{ backgroundColor: getZoneColor(zone.zone_type) }"
-              class="w-4 h-4 rounded-full border border-gray-300"
-            ></div>
-            <h3 class="font-medium text-gray-800 capitalize">{{ getZoneName(zone.zone_type) }}</h3>
-          </div>
-          <div class="flex items-center space-x-1">
-            <button
-              @click="viewZoneOnMap(zone)"
-              class="p-1 text-gray-500 hover:text-blue-600 transition-colors"
-              title="View on Map"
-              :disabled="!zone.geojson_data"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
-            <button
-              @click="viewZone(zone)"
-              class="p-1 text-gray-500 hover:text-green-600 transition-colors"
-              title="View Details"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                />
-              </svg>
-            </button>
-            <button
-              @click="openUploadModal(zone)"
-              class="p-1 text-gray-500 hover:text-orange-600 transition-colors"
-              title="Update Zone"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            </button>
-            <button
-              @click="deleteZone(zone)"
-              class="p-1 text-gray-500 hover:text-red-600 transition-colors"
-              title="Delete Zone"
-              :disabled="!zone.geojson_data"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <img
+          :src="getZoneIcon(zone.zone_type)"
+          class="w-10 h-10 object-contain"
+          :alt="`${getZoneName(zone.zone_type)} icon`"
+        />
+      </div>
 
-        <div class="text-sm text-gray-600 space-y-1">
-          <p><span class="font-medium">Features:</span> {{ zone.feature_count || 0 }}</p>
-          <p><span class="font-medium">Last Updated:</span> {{ formatDate(zone.updated_at) }}</p>
-          <p>
-            <span class="font-medium">Status:</span>
-            <span :class="zone.geojson_data ? 'text-green-600' : 'text-red-600'">
-              {{ zone.geojson_data ? 'Active' : 'No Data' }}
-            </span>
-          </p>
+    <!-- Info + Actions -->
+    <div class="flex-1 flex flex-col ml-4">
+      <!-- Top row: title + actions -->
+      <div class="flex justify-between items-start mb-2">
+        <h3 class="text-base font-semibold text-gray-900 capitalize">
+          {{ getZoneName(zone.zone_type) }}
+        </h3>
+        <div class="flex space-x-2">
+          <button
+            @click="viewZoneOnMap(zone)"
+            class="p-2 rounded-full bg-gray-100 hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition"
+            title="View on Map"
+            :disabled="!zone.geojson_data"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+
+          <button
+            @click="viewZone(zone)"
+            class="p-2 rounded-full bg-gray-100 hover:bg-green-50 text-gray-500 hover:text-green-600 transition"
+            title="View Details"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+
+          <button
+            @click="openUploadModal(zone)"
+            class="p-2 rounded-full bg-gray-100 hover:bg-orange-50 text-gray-500 hover:text-orange-600 transition"
+            title="Update Zone"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+
+          <button
+            @click="deleteZone(zone)"
+            class="p-2 rounded-full bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 transition"
+            title="Delete Zone"
+            :disabled="!zone.geojson_data"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Info under title -->
+          <div class="text-sm text-gray-600 space-y-1">
+            <!-- <p><span class="font-medium">Features:</span> {{ zone.feature_count || 0 }}</p>-->
+            
+            <p>
+              <span class="font-medium">Status:</span>
+              <span :class="zone.geojson_data ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                {{ zone.geojson_data ? 'Active' : 'No Data' }}
+              </span>
+            </p>
+            <p><span class="font-medium">Last Updated:</span> {{ formatDate(zone.updated_at) }}</p> 
+          </div>
         </div>
       </div>
     </div>
+
 
     <!-- Upload/Update Modal -->
     <div
@@ -176,10 +186,12 @@
                       class="text-orange-600"
                       :disabled="isUpdating"
                     />
-                    <div
-                      :style="{ backgroundColor: getZoneColor(zoneType) }"
-                      class="w-3 h-3 rounded-full border border-gray-300"
-                    ></div>
+                    <!-- Updated: Using icon instead of colored circle -->
+                    <img
+                      :src="getZoneIcon(zoneType)"
+                      class="w-4 h-4"
+                      :alt="`${getZoneName(zoneType)} icon`"
+                    />
                     <span class="text-sm capitalize truncate">{{ getZoneName(zoneType) }}</span>
                   </label>
                 </div>
@@ -196,12 +208,14 @@
                     placeholder="Enter color (e.g., blue, #ff5733)"
                     class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
-                  <div
+                  <!-- Updated: Using icon instead of colored circle -->
+                  <img
                     v-if="customZoneInput && isValidColor(customZoneInput)"
-                    :style="{ backgroundColor: getDisplayColor(customZoneInput) }"
+                    :src="getZoneIcon(customZoneInput)"
                     class="w-10 h-10 rounded border border-gray-300 flex-shrink-0"
                     :title="customZoneInput"
-                  ></div>
+                    :alt="`${customZoneInput} icon`"
+                  />
                 </div>
                 <p
                   v-if="customZoneInput && !isValidColor(customZoneInput)"
@@ -330,10 +344,12 @@
             <div class="flex items-center space-x-3">
               <h3 class="text-lg font-semibold text-gray-800">Route Preview</h3>
               <div v-if="previewZoneType" class="flex items-center space-x-2">
-                <div
-                  :style="{ backgroundColor: getDisplayColor(previewZoneType) }"
-                  class="w-4 h-4 rounded-full border border-gray-300"
-                ></div>
+                <!-- Updated: Using icon instead of colored circle -->
+                <img
+                  :src="getZoneIcon(previewZoneType)"
+                  class="w-4 h-4"
+                  :alt="`${getZoneName(previewZoneType)} icon`"
+                />
                 <span class="text-sm text-gray-600 capitalize">{{
                   getZoneName(previewZoneType)
                 }}</span>
@@ -425,10 +441,12 @@
               <div>
                 <span class="font-medium text-gray-700">Zone Type:</span>
                 <div class="flex items-center space-x-2 mt-1">
-                  <div
-                    :style="{ backgroundColor: getZoneColor(selectedZone.zone_type) }"
-                    class="w-3 h-3 rounded-full border border-gray-300"
-                  ></div>
+                  <!-- Updated: Using icon instead of colored circle -->
+                  <img
+                    :src="getZoneIcon(selectedZone.zone_type)"
+                    class="w-3 h-3"
+                    :alt="`${getZoneName(selectedZone.zone_type)} icon`"
+                  />
                   <span class="capitalize">{{ getZoneName(selectedZone.zone_type) }}</span>
                 </div>
               </div>
@@ -465,6 +483,8 @@
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { supabase } from '@/composables/useSupabase'
+import CustomAlert from '../CustomAlert.vue'
+import CustomConfirm from '@/components/CustomConfirm.vue' 
 
 // Props
 defineProps({})
@@ -490,6 +510,18 @@ const previewZoneType = ref('orange')
 const isPreviewMode = ref(false)
 let previewMap = null
 
+// Custom Alert state
+const alertMessage = ref('')
+const alertIcon = ref('info')
+const alertDuration = ref(3000)
+
+
+// Add these reactive properties
+const showDeleteConfirm = ref(false)
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const zoneToDelete = ref(null)
+
 // Computed properties
 const availableZoneTypes = computed(() => {
   return [
@@ -497,7 +529,70 @@ const availableZoneTypes = computed(() => {
   ]
 })
 
+// Alert methods
+const showAlert = (message, icon = 'info', duration = 3000) => {
+  alertMessage.value = message
+  alertIcon.value = icon
+  alertDuration.value = duration
+}
+
+const hideAlert = () => {
+  alertMessage.value = ''
+}
+
 // Methods
+const getZoneIcon = (zoneType) => {
+  // Map zone types to icon files
+  const zoneIcons = {
+    'green': '/src/assets/green_icon.ico',
+    'orange': '/src/assets/orange_icon.ico',
+    'red': '/src/assets/red_icon.ico',
+    'white': '/src//assets/white_icon.ico',
+    'yellow': '/src//assets/yellow_icon.ico',
+    '#00ff00': '/src//assets/green_icon.ico',
+    '#ffa500': '/src//assets/orange_icon.ico',
+    '#ff0000': '/src//assets/red_icon.ico',
+    '#ffffff': '/src//assets/white_icon.ico',
+    '#ffff00': '/src//assets/yellow_icon.ico',
+  };
+  
+  // Check if we have a matching icon
+  const normalizedZoneType = zoneType.toLowerCase();
+  if (zoneIcons[normalizedZoneType]) {
+    return zoneIcons[normalizedZoneType];
+  }
+  
+  // For hex colors, try to match the closest color
+  if (normalizedZoneType.startsWith('#')) {
+    // Simple hex to color name mapping
+    const hexToColor = {
+      '#00ff00': 'green',
+      '#008000': 'green',
+      '#ff0000': 'red',
+      '#800000': 'red',
+      '#ffff00': 'yellow',
+      '#808000': 'yellow',
+      '#ffa500': 'orange',
+      '#ff8c00': 'orange',
+      '#ffffff': 'white',
+      '#f5f5f5': 'white',
+    };
+    
+    // Find the closest matching color
+    for (const [hex, color] of Object.entries(hexToColor)) {
+      if (normalizedZoneType === hex) {
+        return zoneIcons[color];
+      }
+    }
+  }
+  
+  // Default to orange icon for unknown zone types
+  return 'src/assets/orange_icon.ico';
+}
+
+
+
+
 const getZoneColor = (zoneType) => {
   // Handle white color visibility
   if (
@@ -581,6 +676,7 @@ const loadRouteZones = async () => {
     }))
   } catch (error) {
     console.error('Error loading route zones:', error)
+    showAlert('Failed to load route zones', 'error')
     routeZones.value = []
   }
 }
@@ -622,12 +718,12 @@ const handleFileSelect = (event) => {
 
   const reader = new FileReader()
   reader.onload = (e) => {
-    try {
+  try {
       const geojsonData = JSON.parse(e.target.result)
       filePreview.value = geojsonData
     } catch (error) {
       console.error('Invalid GeoJSON file:', error)
-      alert('Invalid GeoJSON file. Please select a valid GeoJSON file.')
+      showAlert('Invalid GeoJSON file. Please select a valid GeoJSON file.', 'error')
       selectedFile.value = null
       filePreview.value = null
     }
@@ -647,7 +743,7 @@ const handleUpload = async () => {
 
   // If updating but no new file selected, skip upload
   if (isUpdating.value && !filePreview.value) {
-    alert('Please select a new GeoJSON file to update the zone.')
+    showAlert('Please select a new GeoJSON file to update the zone.', 'warning')
     return
   }
 
@@ -668,13 +764,19 @@ const handleUpload = async () => {
 
     if (error) throw error
 
-    alert(`Route zone ${isUpdating.value ? 'updated' : 'uploaded'} successfully!`)
+    showAlert(
+      `Route zone ${isUpdating.value ? 'updated' : 'uploaded'} successfully!`,
+      'check_circle'
+    )
     closeUploadModal()
     await loadRouteZones()
     emit('zone-updated', effectiveZoneType)
   } catch (error) {
     console.error(`Error ${isUpdating.value ? 'updating' : 'uploading'} route zone:`, error)
-    alert(`Error ${isUpdating.value ? 'updating' : 'uploading'} route zone. Please try again.`)
+    showAlert(
+      `Error ${isUpdating.value ? 'updating' : 'uploading'} route zone. Please try again.`,
+      'error'
+    )
   } finally {
     uploading.value = false
   }
@@ -770,7 +872,7 @@ const previewOnMap = async () => {
 
 const viewZoneOnMap = async (zone) => {
   if (!zone.geojson_data) {
-    alert('No GeoJSON data available for this zone.')
+    showAlert('No GeoJSON data available for this zone.', 'warning')
     return
   }
 
@@ -793,7 +895,7 @@ const updatePreviewColor = () => {
 const applyPreviewZoneType = () => {
   selectedZoneType.value = previewZoneType.value
   customZoneInput.value = ''
-  alert(`Zone type set to ${getZoneName(previewZoneType.value)}. You can now upload the zone.`)
+  showAlert(`Zone type set to ${getZoneName(previewZoneType.value)}. You can now upload the zone.`, 'check_circle')
   closeMapModal()
 }
 
@@ -812,32 +914,69 @@ const viewZone = (zone) => {
   showViewModal.value = true
 }
 
-const deleteZone = async (zone) => {
+const deleteZone = (zone) => {
   if (!zone.geojson_data) {
-    alert('No data to delete for this zone.')
-    return
+    showAlert('No data to delete for this zone.', 'info')
+  return
   }
 
-  if (!confirm(`Are you sure you want to delete the ${getZoneName(zone.zone_type)} data?`)) {
-    return
-  }
+  // Set up confirmation dialog
+  zoneToDelete.value = zone
+  confirmTitle.value = 'Confirm Deletion'
+  confirmMessage.value = `Are you sure you want to delete the ${getZoneName(zone.zone_type)} data?`
+  showDeleteConfirm.value = true
+}
 
+const handleDeleteConfirm = async () => {
+  const zone = zoneToDelete.value
   try {
     const { error } = await supabase.from('route_zones').delete().eq('zone_type', zone.zone_type)
 
     if (error) throw error
 
-    alert('Zone deleted successfully!')
+    showAlert('Zone deleted successfully!', 'check_circle')
     await loadRouteZones()
     emit('zone-updated', zone.zone_type)
   } catch (error) {
     console.error('Error deleting zone:', error)
-    alert('Error deleting zone. Please try again.')
+    showAlert('Error deleting zone. Please try again.', 'error')
+  } finally {
+    showDeleteConfirm.value = false
+    zoneToDelete.value = null
   }
 }
+
+const handleDeleteCancel = () => {
+  showDeleteConfirm.value = false
+  zoneToDelete.value = null
+}
+
+
+const  getZoneBackgroundColor = (zoneType) => {
+      if (!zoneType) return '#f3f4f6'; // Default gray
+      
+      const normalizedZoneType = zoneType.toLowerCase();
+      
+      // Map zone types to background colors
+      const colorMap = {
+        'green': '#dcfce7',      // Light green
+        'orange': '#ffedd5',     // Light orange
+        'red': '#fee2e2',        // Light red
+        'white': '#f9fafb',      // Light gray
+        'yellow': '#fef9c3',     // Light yellow
+        'blue': '#dbeafe',       // Light blue
+        'purple': '#f3e8ff',     // Light purple
+        'pink': '#fce7f3',       // Light pink
+      };
+      
+      // Return mapped color or default
+      return colorMap[normalizedZoneType] || '#f3f4f6';
+    }
+
 
 // Lifecycle
 onMounted(() => {
   loadRouteZones()
 })
+
 </script>
