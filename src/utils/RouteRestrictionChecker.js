@@ -21,6 +21,10 @@ class RouteRestrictionChecker {
       { id: 'N15', lat: 8.951813, lng:  125.502273, name: 'North Gap mid 15 (mid)' },
       { id: 'N16', lat: 8.955031, lng:  125.536584, name: 'North Gap mid 16 (mid)' },
 
+
+      { id: 'N17', lat: 8.952008, lng:  125.506684, name: 'North Gap mid 17 (mid)' },
+      { id: 'N18', lat: 8.950440, lng:  125.511560, name: 'North Gap mid 18 (mid)' },
+      { id: 'N19', lat: 8.947711, lng:  125.504796, name: 'North Gap mid 19 (mid)' }
     ]
     
     this.southWaypoints = [

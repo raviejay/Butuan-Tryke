@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "builtAt": "2025-10-31T13:44:45.354Z",
+    "builtAt": "2025-11-01T09:09:39.163Z",
     "version": "1.0",
     "description": "Precomputed route graph for fast path finding"
   },
@@ -115,6 +115,27 @@
       "lat": 8.955031,
       "lng": 125.536584,
       "name": "North Gap mid 16 (mid)",
+      "side": "north"
+    },
+    {
+      "id": "N17",
+      "lat": 8.952008,
+      "lng": 125.506684,
+      "name": "North Gap mid 17 (mid)",
+      "side": "north"
+    },
+    {
+      "id": "N18",
+      "lat": 8.95044,
+      "lng": 125.51156,
+      "name": "North Gap mid 18 (mid)",
+      "side": "north"
+    },
+    {
+      "id": "N19",
+      "lat": 8.947711,
+      "lng": 125.504796,
+      "name": "North Gap mid 19 (mid)",
       "side": "north"
     },
     {
@@ -606,6 +627,22 @@
       "duration": 183.6,
       "violations": 0,
       "cost": 1496.5
+    },
+    {
+      "from": "N4",
+      "to": "N17",
+      "distance": 3440.6,
+      "duration": 322.8,
+      "violations": 0,
+      "cost": 3440.6
+    },
+    {
+      "from": "N4",
+      "to": "N19",
+      "distance": 4146.1,
+      "duration": 341.6,
+      "violations": 0,
+      "cost": 4146.1
     },
     {
       "from": "N4",
@@ -1160,6 +1197,30 @@
       "cost": 4335.9
     },
     {
+      "from": "N8",
+      "to": "N17",
+      "distance": 601.3,
+      "duration": 90.3,
+      "violations": 0,
+      "cost": 601.3
+    },
+    {
+      "from": "N8",
+      "to": "N18",
+      "distance": 1375.3,
+      "duration": 189.6,
+      "violations": 0,
+      "cost": 1375.3
+    },
+    {
+      "from": "N8",
+      "to": "N19",
+      "distance": 1306.7,
+      "duration": 109.1,
+      "violations": 0,
+      "cost": 1306.7
+    },
+    {
       "from": "N9",
       "to": "N11",
       "distance": 2446.4,
@@ -1200,6 +1261,30 @@
       "cost": 2833.7
     },
     {
+      "from": "N9",
+      "to": "N17",
+      "distance": 2103.4,
+      "duration": 194.8,
+      "violations": 0,
+      "cost": 2103.4
+    },
+    {
+      "from": "N9",
+      "to": "N18",
+      "distance": 2877.4,
+      "duration": 294.1,
+      "violations": 0,
+      "cost": 2877.4
+    },
+    {
+      "from": "N9",
+      "to": "N19",
+      "distance": 2808.9,
+      "duration": 213.6,
+      "violations": 0,
+      "cost": 2808.9
+    },
+    {
       "from": "N11",
       "to": "N13",
       "distance": 447.7,
@@ -1214,6 +1299,30 @@
       "duration": 24.7,
       "violations": 0,
       "cost": 376.1
+    },
+    {
+      "from": "N11",
+      "to": "N17",
+      "distance": 1160.1,
+      "duration": 122.8,
+      "violations": 0,
+      "cost": 1160.1
+    },
+    {
+      "from": "N11",
+      "to": "N18",
+      "distance": 1679.5,
+      "duration": 206,
+      "violations": 0,
+      "cost": 1679.5
+    },
+    {
+      "from": "N11",
+      "to": "N19",
+      "distance": 362.4,
+      "duration": 47.2,
+      "violations": 0,
+      "cost": 362.4
     },
     {
       "from": "N12",
@@ -1320,6 +1429,30 @@
       "cost": 823.8
     },
     {
+      "from": "N13",
+      "to": "N17",
+      "distance": 1607.8,
+      "duration": 181.9,
+      "violations": 0,
+      "cost": 1607.8
+    },
+    {
+      "from": "N13",
+      "to": "N18",
+      "distance": 2127.2,
+      "duration": 265.1,
+      "violations": 0,
+      "cost": 2127.2
+    },
+    {
+      "from": "N13",
+      "to": "N19",
+      "distance": 719.8,
+      "duration": 103.8,
+      "violations": 0,
+      "cost": 719.8
+    },
+    {
       "from": "N14",
       "to": "N16",
       "distance": 1007.2,
@@ -1392,6 +1525,38 @@
       "cost": 4904
     },
     {
+      "from": "N15",
+      "to": "N17",
+      "distance": 784,
+      "duration": 98.1,
+      "violations": 0,
+      "cost": 784
+    },
+    {
+      "from": "N15",
+      "to": "N18",
+      "distance": 1303.4,
+      "duration": 181.3,
+      "violations": 0,
+      "cost": 1303.4
+    },
+    {
+      "from": "N15",
+      "to": "N19",
+      "distance": 738.5,
+      "duration": 71.9,
+      "violations": 0,
+      "cost": 738.5
+    },
+    {
+      "from": "N16",
+      "to": "N17",
+      "distance": 4720.5,
+      "duration": 470.6,
+      "violations": 0,
+      "cost": 4720.5
+    },
+    {
       "from": "N16",
       "to": "S2",
       "distance": 1542.2,
@@ -1454,6 +1619,30 @@
       "duration": 240.9,
       "violations": 0,
       "cost": 2337.8
+    },
+    {
+      "from": "N17",
+      "to": "N18",
+      "distance": 654.7,
+      "duration": 102.2,
+      "violations": 0,
+      "cost": 654.7
+    },
+    {
+      "from": "N17",
+      "to": "N19",
+      "distance": 721.7,
+      "duration": 106.1,
+      "violations": 0,
+      "cost": 721.7
+    },
+    {
+      "from": "N18",
+      "to": "N19",
+      "distance": 1100.7,
+      "duration": 172.9,
+      "violations": 0,
+      "cost": 1100.7
     },
     {
       "from": "S1",
