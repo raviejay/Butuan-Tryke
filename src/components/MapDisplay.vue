@@ -852,9 +852,26 @@ const drawRoute = (routeData, color = '#ff8800') => {
 }
 
 // Highlight route suggestions
+// Add a ref to track the currently highlighted suggestion
+const currentHighlightedSuggestion = ref(null)
+
+// Modified highlight route function
 const highlightRoute = (suggestion) => {
+  // Check if clicking the same suggestion again
+  if (currentHighlightedSuggestion.value === suggestion) {
+    // Clear the highlight
+    highlightedRoutes.value.forEach((layer) => map.value.removeLayer(layer))
+    highlightedRoutes.value = []
+    currentHighlightedSuggestion.value = null
+    return
+  }
+
+  // Clear previous highlights
   highlightedRoutes.value.forEach((layer) => map.value.removeLayer(layer))
   highlightedRoutes.value = []
+
+  // Set new highlighted suggestion
+  currentHighlightedSuggestion.value = suggestion
 
   if (suggestion.type === 'transfer') {
     suggestion.routeData.forEach((route, index) => {
